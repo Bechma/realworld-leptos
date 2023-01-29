@@ -58,19 +58,15 @@ pub async fn signup_action(
         }
         Err(x) => {
             let x = x.to_string();
-            if x.contains("users_email_key") {
-                Ok(SignupResponse::CreateUserError(
-                    "Duplicated email".to_string(),
-                ))
+            Ok(if x.contains("users_email_key") {
+                SignupResponse::CreateUserError("Duplicated email".to_string())
             } else if x.contains("users_pkey") {
-                Ok(SignupResponse::CreateUserError(
-                    "Duplicated user".to_string(),
-                ))
+                SignupResponse::CreateUserError("Duplicated user".to_string())
             } else {
-                Ok(SignupResponse::CreateUserError(
+                SignupResponse::CreateUserError(
                     "There is an unknown problem, try again later".to_string(),
-                ))
-            }
+                )
+            })
         }
     }
 }
@@ -79,8 +75,8 @@ pub async fn signup_action(
 pub fn Signup(cx: Scope) -> impl IntoView {
     let (error, set_error) = create_signal(cx, view! {cx, <ul></ul>});
 
-    let login_server_action = create_server_action::<SignupAction>(cx);
-    let result_of_call = login_server_action.value();
+    let signup_server_action = create_server_action::<SignupAction>(cx);
+    let result_of_call = signup_server_action.value();
 
     let navigate = use_navigate(cx);
     let username_set = use_context::<crate::app::AuthState>(cx).unwrap();
@@ -113,7 +109,7 @@ pub fn Signup(cx: Scope) -> impl IntoView {
                 }),
             }
         }
-        log::debug!("Login Effect!");
+        log::debug!("Signup Effect!");
     });
 
     view! { cx,
@@ -129,7 +125,7 @@ pub fn Signup(cx: Scope) -> impl IntoView {
 
                         {error}
 
-                        <ActionForm action=login_server_action>
+                        <ActionForm action=signup_server_action>
                             <fieldset class="form-group">
                                 <input name="username" class="form-control form-control-lg" type="text" placeholder="Your Username" required=true/>
                             </fieldset>

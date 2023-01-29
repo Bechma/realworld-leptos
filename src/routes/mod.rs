@@ -1,3 +1,4 @@
+pub mod editor;
 pub mod login;
 pub mod signup;
 use leptos::*;
@@ -7,6 +8,7 @@ pub fn register_server_fn() {
     self::login::LoginAction::register().unwrap();
     self::login::LogoutAction::register().unwrap();
     self::signup::SignupAction::register().unwrap();
+    self::editor::EditorAction::register().unwrap();
 }
 
 #[cfg(not(feature = "ssr"))]
@@ -24,17 +26,13 @@ pub fn get_username(_cx: Scope) -> Option<String> {
 #[cfg(feature = "ssr")]
 pub fn get_username(cx: Scope) -> Option<String> {
     if let Some(req) = use_context::<leptos_axum::RequestParts>(cx) {
-        req.headers
-            .get("cookies")
-            .map(|x| {
-                x.to_str()
-                    .unwrap()
-                    .split("; ")
-                    .find(|x| x.starts_with("session"))
-                    .map(|x| x.split('=').last().map(|x| x.to_string()))
-                    .flatten()
-            })
-            .flatten()
+        req.headers.get("cookies").and_then(|x| {
+            x.to_str()
+                .unwrap()
+                .split("; ")
+                .find(|x| x.starts_with("session"))
+                .and_then(|x| x.split('=').last().map(|x| x.to_string()))
+        })
     } else {
         None
     }

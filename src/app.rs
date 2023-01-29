@@ -2,6 +2,7 @@ use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 
+use crate::routes::editor::*;
 use crate::routes::get_username;
 use crate::routes::login::*;
 use crate::routes::signup::*;
@@ -58,6 +59,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     <Route path="/hell" view=|cx| view! { cx, <Hell/> }/>
                     <Route path="/login" view=|cx| view! { cx, <Login/> }/>
                     <Route path="/signup" view=|cx| view! { cx, <Signup/> }/>
+                    <Route path="/editor/:slug?" view=|cx| view! { cx, <Editor/> }/>
                 </Routes>
             </main>
             <footer>

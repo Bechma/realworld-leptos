@@ -3,8 +3,6 @@ static DB: once_cell::sync::OnceCell<sqlx::PgPool> = once_cell::sync::OnceCell::
 
 #[cfg(feature = "ssr")]
 async fn create_pool() -> sqlx::PgPool {
-    use sqlx::Executor;
-
     let database_url = &std::env::var("DATABASE_URL").expect("no database url specify");
     let pool = sqlx::postgres::PgPoolOptions::new()
         .max_connections(20)
@@ -17,9 +15,6 @@ async fn create_pool() -> sqlx::PgPool {
         .await
         .expect("migrations failed");
 
-    pool.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
-        .await
-        .expect("pgcrypto not available");
     pool
 }
 
