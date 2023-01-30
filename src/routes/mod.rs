@@ -15,7 +15,6 @@ pub fn register_server_fn() {
 pub fn get_username(_cx: Scope) -> Option<String> {
     let doc = document().unchecked_into::<web_sys::HtmlDocument>();
     let cookies = doc.cookie().unwrap_or_default();
-    log::info!("cookies: {:?}", cookies);
     cookies
         .split("; ")
         .find(|x| x.starts_with("session"))
@@ -26,7 +25,7 @@ pub fn get_username(_cx: Scope) -> Option<String> {
 #[cfg(feature = "ssr")]
 pub fn get_username(cx: Scope) -> Option<String> {
     if let Some(req) = use_context::<leptos_axum::RequestParts>(cx) {
-        req.headers.get("cookies").and_then(|x| {
+        req.headers.get(axum::http::header::COOKIE).and_then(|x| {
             x.to_str()
                 .unwrap()
                 .split("; ")
