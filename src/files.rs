@@ -3,7 +3,7 @@
 #[cfg(feature = "ssr")]
 pub async fn get_static_file(
     uri: axum::http::Uri,
-    root: axum::Extension<std::sync::Arc<String>>,
+    root: axum::extract::State<leptos::LeptosOptions>,
 ) -> Result<axum::http::Response<axum::body::BoxBody>, (axum::http::StatusCode, String)> {
     use tower::ServiceExt;
 
@@ -13,7 +13,7 @@ pub async fn get_static_file(
         .unwrap();
     // `ServeDir` implements `tower::Service` so we can call it with `tower::ServiceExt::oneshot`
     // This path is relative to the cargo root
-    tower_http::services::ServeDir::new(&**root)
+    tower_http::services::ServeDir::new(&root.site_root)
         .oneshot(req)
         .await
         .map(|res| res.map(axum::body::boxed))

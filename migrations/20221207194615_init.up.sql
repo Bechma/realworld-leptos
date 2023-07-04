@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS ArticleTags (
     PRIMARY KEY (article, tag)
 );
 
-CREATE INDEX tags ON ArticleTags (tag);
+CREATE INDEX IF NOT EXISTS tags ON ArticleTags (tag);
 
 CREATE TABLE IF NOT EXISTS FavArticles (
     article text NOT NULL REFERENCES Articles(slug) ON DELETE CASCADE ON UPDATE CASCADE,

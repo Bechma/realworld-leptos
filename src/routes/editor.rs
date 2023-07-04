@@ -11,6 +11,7 @@ pub enum EditorResponse {
 }
 
 #[cfg(feature = "ssr")]
+#[derive(Debug)]
 struct ArticleUpdate {
     title: String,
     description: String,
@@ -19,6 +20,7 @@ struct ArticleUpdate {
 }
 
 #[cfg(feature = "ssr")]
+#[tracing::instrument]
 fn validate_article(
     title: String,
     description: String,
@@ -52,6 +54,7 @@ fn validate_article(
 }
 
 #[cfg(feature = "ssr")]
+#[tracing::instrument]
 async fn update_article(
     author: String,
     slug: String,
@@ -91,7 +94,7 @@ async fn update_article(
     };
     if rows_affected != 1 {
         // We are going to modify just one row, otherwise something funky is going on
-        log::error!("no rows affected");
+        tracing::error!("no rows affected");
         return Err(sqlx::Error::RowNotFound);
     }
     sqlx::query!("DELETE FROM ArticleTags WHERE article=$1", slug)
@@ -112,6 +115,7 @@ async fn update_article(
     Ok(slug)
 }
 
+#[tracing::instrument]
 #[server(EditorAction, "/api")]
 pub async fn editor_action(
     cx: Scope,
@@ -131,12 +135,13 @@ pub async fn editor_action(
     match update_article(author, slug, article).await {
         Ok(x) => Ok(EditorResponse::Success(x)),
         Err(x) => {
-            log::error!("EDITOR ERROR: {}", x.to_string());
+            tracing::error!("EDITOR ERROR: {}", x.to_string());
             Ok(EditorResponse::UpdateError)
         }
     }
 }
 
+#[tracing::instrument]
 #[component]
 pub fn Editor(cx: Scope) -> impl IntoView {
     let (error, set_error) = create_signal(cx, view! {cx, <ul></ul>});
@@ -144,12 +149,10 @@ pub fn Editor(cx: Scope) -> impl IntoView {
     let editor_server_action = create_server_action::<EditorAction>(cx);
     let result_of_call = editor_server_action.value();
 
-    let navigate = use_navigate(cx);
-
     let params = use_params_map(cx);
     let slug = params
         .get()
-        .get("slug".into())
+        .get("slug")
         .map(|x| {
             view! {cx,
                 <input name="slug" type="hidden" value=x />
@@ -158,41 +161,42 @@ pub fn Editor(cx: Scope) -> impl IntoView {
         .unwrap_or(view! {cx, <input name="slug" type="hidden" value="" />});
 
     create_effect(cx, move |_| {
-        let r = result_of_call();
-        if super::get_username(cx).is_none() {
-            navigate("/login", NavigateOptions::default()).unwrap();
-            log::debug!("You need to login");
-            return;
-        }
-        if let Some(msg) = r {
-            match msg {
-                Ok(EditorResponse::ValidationError(x)) => set_error(view! {cx,
-                    <ul class="error-messages">
-                        <li>"Problem while validating: "{x}</li>
-                    </ul>
-                }),
-                Ok(EditorResponse::UpdateError) => set_error(view! {cx,
-                    <ul class="error-messages">
-                        <li>"Error while updating the article, please, try again later"</li>
-                    </ul>
-                }),
-                Ok(EditorResponse::Unauthenticated) => {
-                    log::debug!("You need to login");
-                    navigate("/login", NavigateOptions::default()).unwrap();
-                    return;
-                }
-                Ok(EditorResponse::Success(x)) => {
-                    navigate(&format!("/article/{}", x), NavigateOptions::default()).unwrap();
-                    return;
-                }
-                Err(x) => set_error(view! {cx,
-                    <ul class="error-messages">
-                        <li>"Unexpected error: "{x.to_string()}</li>
-                    </ul>
-                }),
+        let r = result_of_call.get();
+        let navigate = use_navigate(cx);
+        request_animation_frame(move || {
+            if super::get_username(cx).is_none() {
+                navigate("/login", NavigateOptions::default()).unwrap();
+                tracing::debug!("You need to login");
+                return;
             }
-        }
-        log::debug!("Editor Effect!");
+            if let Some(msg) = r {
+                match msg {
+                    Ok(EditorResponse::ValidationError(x)) => set_error.set(view! {cx,
+                        <ul class="error-messages">
+                            <li>"Problem while validating: "{x}</li>
+                        </ul>
+                    }),
+                    Ok(EditorResponse::UpdateError) => set_error.set(view! {cx,
+                        <ul class="error-messages">
+                            <li>"Error while updating the article, please, try again later"</li>
+                        </ul>
+                    }),
+                    Ok(EditorResponse::Unauthenticated) => {
+                        tracing::debug!("You need to login");
+                        navigate("/login", NavigateOptions::default()).unwrap()
+                    }
+                    Ok(EditorResponse::Success(x)) => {
+                        navigate(&format!("/article/{}", x), NavigateOptions::default()).unwrap()
+                    }
+                    Err(x) => set_error.set(view! {cx,
+                        <ul class="error-messages">
+                            <li>"Unexpected error: "{x.to_string()}</li>
+                        </ul>
+                    }),
+                }
+            }
+        });
+        tracing::debug!("Editor Effect!");
     });
 
     view! { cx,

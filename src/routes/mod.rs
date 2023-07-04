@@ -3,16 +3,11 @@ pub mod login;
 pub mod signup;
 use leptos::*;
 
-#[cfg(feature = "ssr")]
-pub fn register_server_fn() {
-    self::login::LoginAction::register().unwrap();
-    self::login::LogoutAction::register().unwrap();
-    self::signup::SignupAction::register().unwrap();
-    self::editor::EditorAction::register().unwrap();
-}
-
 #[cfg(not(feature = "ssr"))]
+#[tracing::instrument]
 pub fn get_username(_cx: Scope) -> Option<String> {
+    use wasm_bindgen::JsCast;
+
     let doc = document().unchecked_into::<web_sys::HtmlDocument>();
     let cookies = doc.cookie().unwrap_or_default();
     cookies
@@ -23,6 +18,7 @@ pub fn get_username(_cx: Scope) -> Option<String> {
 }
 
 #[cfg(feature = "ssr")]
+#[tracing::instrument]
 pub fn get_username(cx: Scope) -> Option<String> {
     if let Some(req) = use_context::<leptos_axum::RequestParts>(cx) {
         req.headers.get(axum::http::header::COOKIE).and_then(|x| {
@@ -38,14 +34,14 @@ pub fn get_username(cx: Scope) -> Option<String> {
 }
 
 #[cfg(feature = "ssr")]
+#[tracing::instrument]
 pub async fn set_username(cx: Scope, username: String) -> bool {
     if let Some(res) = use_context::<leptos_axum::ResponseOptions>(cx) {
         res.insert_header(
             axum::http::header::SET_COOKIE,
             axum::http::HeaderValue::from_str(&format!("session={username}; path=/"))
                 .expect("header value couldn't be set"),
-        )
-        .await;
+        );
         true
     } else {
         false

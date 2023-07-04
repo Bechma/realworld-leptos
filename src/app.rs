@@ -83,18 +83,19 @@ fn NavItems(cx: Scope) -> impl IntoView {
     let username_set = username.username_set;
     let username = username.username;
     let profile_href = move || {
-        username()
+        username
+            .get()
             .map(|x| format!("/profile/{x}"))
             .unwrap_or_default()
     };
-    let profile_label = move || username().map(|x| format!(" {x}")).unwrap_or_default();
-    let logged_style = move || username().map(|_| "").unwrap_or("display: none;");
-    let anonymous_style = move || username().map(|_| "display: none;").unwrap_or("");
+    let profile_label = move || username.get().map(|x| format!(" {x}")).unwrap_or_default();
+    let logged_style = move || username.get().map(|_| "").unwrap_or("display: none;");
+    let anonymous_style = move || username.get().map(|_| "display: none;").unwrap_or("");
 
     let result_of_call = logout.value();
     create_effect(cx, move |_| {
-        if result_of_call().is_some() {
-            username_set(None);
+        if result_of_call.get().is_some() {
+            username_set.set(None);
         }
     });
 

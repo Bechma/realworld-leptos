@@ -1,5 +1,5 @@
 #[cfg(feature = "ssr")]
-static DB: once_cell::sync::OnceCell<sqlx::PgPool> = once_cell::sync::OnceCell::new();
+static DB: std::sync::OnceLock<sqlx::PgPool> = std::sync::OnceLock::new();
 
 #[cfg(feature = "ssr")]
 async fn create_pool() -> sqlx::PgPool {

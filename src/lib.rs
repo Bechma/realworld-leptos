@@ -13,8 +13,7 @@ pub fn hydrate() {
     use app::*;
     use leptos::*;
 
-    // initializes logging using the `log` crate
-    _ = console_log::init_with_level(log::Level::Debug);
+    tracing_wasm::set_as_global_default();
     console_error_panic_hook::set_once();
 
     leptos::mount_to_body(move |cx| view! { cx, <App/> });

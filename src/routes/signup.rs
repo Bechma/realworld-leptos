@@ -3,7 +3,7 @@ use leptos_meta::*;
 use leptos_router::*;
 
 #[cfg(feature = "ssr")]
-static EMAIL_REGEX: once_cell::sync::OnceCell<regex::Regex> = once_cell::sync::OnceCell::new();
+static EMAIL_REGEX: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
 
 #[derive(serde::Deserialize, Clone, serde::Serialize)]
 pub enum SignupResponse {
@@ -13,6 +13,7 @@ pub enum SignupResponse {
 }
 
 #[cfg(feature = "ssr")]
+#[tracing::instrument]
 fn validate_form(username: String, email: String, password: String) -> Result<(), String> {
     if username.len() < 4 {
         return Err("Username is too short, at least 4".into());
@@ -32,6 +33,7 @@ fn validate_form(username: String, email: String, password: String) -> Result<()
     Ok(())
 }
 
+#[tracing::instrument]
 #[server(SignupAction, "/api")]
 pub async fn signup_action(
     cx: Scope,
@@ -71,6 +73,7 @@ pub async fn signup_action(
     }
 }
 
+#[tracing::instrument]
 #[component]
 pub fn Signup(cx: Scope) -> impl IntoView {
     let (error, set_error) = create_signal(cx, view! {cx, <ul></ul>});
@@ -83,33 +86,33 @@ pub fn Signup(cx: Scope) -> impl IntoView {
     let username_set = username_set.username_set;
 
     create_effect(cx, move |_| {
-        let r = result_of_call();
+        let r = result_of_call.get();
         if let Some(user) = super::get_username(cx) {
             navigate("/", NavigateOptions::default()).unwrap();
-            username_set(Some(user));
-            log::debug!("You are logged");
+            username_set.set(Some(user));
+            tracing::debug!("You are logged");
             return;
         }
         if let Some(msg) = r {
             match msg {
-                Ok(SignupResponse::ValidationError(x)) => set_error(view! {cx,
+                Ok(SignupResponse::ValidationError(x)) => set_error.set(view! {cx,
                     <ul class="error-messages">
                         <li>"Problem while validating: "{x}</li>
                     </ul>
                 }),
-                Ok(SignupResponse::CreateUserError(x)) => set_error(view! {cx,
+                Ok(SignupResponse::CreateUserError(x)) => set_error.set(view! {cx,
                     <ul class="error-messages">
                         <li>{x}</li>
                     </ul>
                 }),
-                _ => set_error(view! {cx,
+                _ => set_error.set(view! {cx,
                     <ul class="error-messages">
                         <li>"There was a problem, try again later"</li>
                     </ul>
                 }),
             }
         }
-        log::debug!("Signup Effect!");
+        tracing::debug!("Signup Effect!");
     });
 
     view! { cx,
