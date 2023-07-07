@@ -7,12 +7,14 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-tokio = { version = "1", optional = true }
 axum = { version = "0.6", optional = true }
+axum-extra = { version = "0.7", features = ["cookie"], optional = true }
+jsonwebtoken = { version = "8", optional = true }
+tokio = { version = "1", optional = true }
 tower = { version = "0.4", optional = true }
 tower-http = { version = "0.4", features = ["fs", "trace"], optional = true }
 sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "postgres", "chrono", "offline"], optional = true}
-regex = { version = "1.7", optional = true }
+regex = { version = "1.8", optional = true }
 
 serde = { version = "1.0.148", features = ["derive"] }
 
@@ -22,6 +24,7 @@ leptos = { version = "0.4", features = ["serde"]}
 leptos_meta = { version = "0.4" }
 leptos_axum = { version = "0.4", optional = true }
 leptos_router = { version = "0.4" }
+
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["fmt"]}
 tracing-wasm = { version = "0.2", optional = true }
@@ -42,16 +45,18 @@ hydrate = [
   "dep:console_error_panic_hook",
 ]
 ssr = [
+  "leptos/ssr",
+  "leptos_meta/ssr",
+  "leptos_router/ssr",
+  "dep:leptos_axum",
   "dep:axum",
+  "dep:axum-extra",
+  "dep:jsonwebtoken",
   "dep:tokio",
   "dep:tower",
   "dep:tower-http",
   "dep:sqlx",
   "dep:regex",
-  "dep:leptos_axum",
-  "leptos/ssr",
-  "leptos_meta/ssr",
-  "leptos_router/ssr",
 ]
 
 [package.metadata.leptos]
@@ -74,7 +79,7 @@ assets-dir = "assets"
 # JS source dir. `wasm-bindgen` has the option to include JS snippets from JS files
 # with `#[wasm_bindgen(module = "/js/foo.js")]`. A change in any JS file in this dir
 # will trigger a rebuild.
-# js-dir = "js"
+js-dir = "js"
 
 # The IP and port (ex: 127.0.0.1:3000) where the server serves the content. Use it in your server setup.
 site-address = "127.0.0.1:3000"

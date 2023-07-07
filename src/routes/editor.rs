@@ -6,7 +6,6 @@ use leptos_router::*;
 pub enum EditorResponse {
     ValidationError(String),
     UpdateError,
-    Unauthenticated,
     Success(String),
 }
 
@@ -115,8 +114,8 @@ async fn update_article(
     Ok(slug)
 }
 
-#[tracing::instrument]
 #[server(EditorAction, "/api")]
+#[tracing::instrument]
 pub async fn editor_action(
     cx: Scope,
     title: String,
@@ -126,7 +125,8 @@ pub async fn editor_action(
     slug: String,
 ) -> Result<EditorResponse, ServerFnError> {
     let Some(author) = super::get_username(cx) else {
-        return Ok(EditorResponse::Unauthenticated);
+        leptos_axum::redirect(cx, "/login");
+        return Ok(EditorResponse::ValidationError("you should be authenticated".to_string()));
     };
     let article = match validate_article(title, description, body, tag_list) {
         Ok(x) => x,
@@ -150,52 +150,32 @@ pub fn Editor(cx: Scope) -> impl IntoView {
     let result_of_call = editor_server_action.value();
 
     let params = use_params_map(cx);
-    let slug = params
-        .get()
-        .get("slug")
-        .map(|x| {
-            view! {cx,
-                <input name="slug" type="hidden" value=x />
-            }
-        })
-        .unwrap_or(view! {cx, <input name="slug" type="hidden" value="" />});
+    let slug = params.get().get("slug").cloned().unwrap_or_default();
+    let navigate = use_navigate(cx);
 
     create_effect(cx, move |_| {
-        let r = result_of_call.get();
-        let navigate = use_navigate(cx);
-        request_animation_frame(move || {
-            if super::get_username(cx).is_none() {
-                navigate("/login", NavigateOptions::default()).unwrap();
-                tracing::debug!("You need to login");
-                return;
-            }
-            if let Some(msg) = r {
-                match msg {
-                    Ok(EditorResponse::ValidationError(x)) => set_error.set(view! {cx,
-                        <ul class="error-messages">
-                            <li>"Problem while validating: "{x}</li>
-                        </ul>
-                    }),
-                    Ok(EditorResponse::UpdateError) => set_error.set(view! {cx,
-                        <ul class="error-messages">
-                            <li>"Error while updating the article, please, try again later"</li>
-                        </ul>
-                    }),
-                    Ok(EditorResponse::Unauthenticated) => {
-                        tracing::debug!("You need to login");
-                        navigate("/login", NavigateOptions::default()).unwrap()
-                    }
-                    Ok(EditorResponse::Success(x)) => {
-                        navigate(&format!("/article/{}", x), NavigateOptions::default()).unwrap()
-                    }
-                    Err(x) => set_error.set(view! {cx,
-                        <ul class="error-messages">
-                            <li>"Unexpected error: "{x.to_string()}</li>
-                        </ul>
-                    }),
+        if let Some(msg) = result_of_call.get() {
+            match msg {
+                Ok(EditorResponse::ValidationError(x)) => set_error.set(view! {cx,
+                    <ul class="error-messages">
+                        <li>"Problem while validating: "{x}</li>
+                    </ul>
+                }),
+                Ok(EditorResponse::UpdateError) => set_error.set(view! {cx,
+                    <ul class="error-messages">
+                        <li>"Error while updating the article, please, try again later"</li>
+                    </ul>
+                }),
+                Ok(EditorResponse::Success(x)) => {
+                    navigate(&format!("/article/{x}"), NavigateOptions::default()).unwrap()
                 }
+                Err(x) => set_error.set(view! {cx,
+                    <ul class="error-messages">
+                        <li>"Unexpected error: "{x.to_string()}</li>
+                    </ul>
+                }),
             }
-        });
+        }
         tracing::debug!("Editor Effect!");
     });
 
@@ -224,10 +204,10 @@ pub fn Editor(cx: Scope) -> impl IntoView {
                                     <input name="tag_list" type="text" class="form-control"
                                         placeholder="Enter tags(space separated)" />
                                 </fieldset>
+                                <input name="slug" type="hidden" value=slug />
                                 <button class="btn btn-lg pull-xs-right btn-primary" type="submit">
                                     "Publish Article"
                                 </button>
-                                {slug}
                             </fieldset>
                         </ActionForm>
                     </div>

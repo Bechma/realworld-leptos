@@ -15,6 +15,8 @@ pub async fn init_app(configuration_path: Option<&str>) {
     // Generate the list of routes in your Leptos App
     let routes = generate_route_list(|cx| view! { cx, <App/> }).await;
     let leptos_options = conf.leptos_options;
+    let serve_dir = tower_http::services::ServeDir::new(&leptos_options.site_root)
+        .append_index_html_on_directories(false);
 
     let app = axum::Router::new()
         // We need to register the server function handlers
@@ -23,10 +25,7 @@ pub async fn init_app(configuration_path: Option<&str>) {
             axum::routing::post(leptos_axum::handle_server_fns),
         )
         .leptos_routes(&leptos_options, routes, |cx| view! { cx, <App/> })
-        .fallback(
-            // if the routes doesn't match, serve local files from site_root
-            crate::files::get_static_file,
-        )
+        .fallback_service(serve_dir)
         .layer(
             tower_http::trace::TraceLayer::new_for_http()
                 .make_span_with(
@@ -40,6 +39,7 @@ pub async fn init_app(configuration_path: Option<&str>) {
                     tower_http::trace::DefaultOnFailure::new().level(tracing::Level::ERROR),
                 ),
         )
+        .layer(axum::middleware::from_fn(crate::auth::auth_middleware))
         .with_state(leptos_options);
 
     // run with hyper `axum::Server` is a re-export of `hyper::Server`

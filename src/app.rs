@@ -7,25 +7,18 @@ use crate::routes::get_username;
 use crate::routes::login::*;
 use crate::routes::signup::*;
 
-#[derive(Clone)]
-pub struct AuthState {
-    pub username: ReadSignal<Option<String>>,
-    pub username_set: WriteSignal<Option<String>>,
-}
+pub(crate) type AuthState = RwSignal<Option<String>>;
 
+#[tracing::instrument]
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context(cx);
-    let (username, username_set) = create_signal(cx, get_username(cx));
+    let username = get_username(cx);
 
-    provide_context(
-        cx,
-        AuthState {
-            username,
-            username_set,
-        },
-    );
+    let username_signal = create_rw_signal(cx, username);
+
+    provide_context(cx, username_signal as AuthState);
 
     view! {
         cx,
@@ -76,12 +69,11 @@ pub fn App(cx: Scope) -> impl IntoView {
     }
 }
 
+#[tracing::instrument]
 #[component(transparent)]
 fn NavItems(cx: Scope) -> impl IntoView {
     let logout = create_server_action::<LogoutAction>(cx);
     let username = use_context::<AuthState>(cx).unwrap();
-    let username_set = username.username_set;
-    let username = username.username;
     let profile_href = move || {
         username
             .get()
@@ -94,8 +86,19 @@ fn NavItems(cx: Scope) -> impl IntoView {
 
     let result_of_call = logout.value();
     create_effect(cx, move |_| {
-        if result_of_call.get().is_some() {
-            username_set.set(None);
+        let res = result_of_call.get();
+        tracing::debug!("Result logout: {:?}", res);
+        if res.is_some() {
+            username.set(None);
+            request_animation_frame(move || {
+                let route = use_router(cx);
+                let path = route.pathname();
+                let path = path.get_untracked();
+                tracing::debug!("Logout request_animation_frame path: {path}");
+                if path.starts_with("/settings") || path.starts_with("/editor") {
+                    use_navigate(cx)("/login", NavigateOptions::default()).unwrap()
+                }
+            })
         }
     });
 

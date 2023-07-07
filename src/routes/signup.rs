@@ -9,7 +9,7 @@ static EMAIL_REGEX: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new
 pub enum SignupResponse {
     ValidationError(String),
     CreateUserError(String),
-    Success,
+    Success(String),
 }
 
 #[cfg(feature = "ssr")]
@@ -55,8 +55,8 @@ pub async fn signup_action(
     .await
     {
         Ok(_) => {
-            super::set_username(cx, username).await;
-            Ok(SignupResponse::Success)
+            super::set_username(cx, username.clone()).await;
+            Ok(SignupResponse::Success(username))
         }
         Err(x) => {
             let x = x.to_string();
@@ -81,19 +81,10 @@ pub fn Signup(cx: Scope) -> impl IntoView {
     let signup_server_action = create_server_action::<SignupAction>(cx);
     let result_of_call = signup_server_action.value();
 
-    let navigate = use_navigate(cx);
-    let username_set = use_context::<crate::app::AuthState>(cx).unwrap();
-    let username_set = username_set.username_set;
+    let username = use_context::<crate::app::AuthState>(cx).unwrap();
 
     create_effect(cx, move |_| {
-        let r = result_of_call.get();
-        if let Some(user) = super::get_username(cx) {
-            navigate("/", NavigateOptions::default()).unwrap();
-            username_set.set(Some(user));
-            tracing::debug!("You are logged");
-            return;
-        }
-        if let Some(msg) = r {
+        if let Some(msg) = result_of_call.get() {
             match msg {
                 Ok(SignupResponse::ValidationError(x)) => set_error.set(view! {cx,
                     <ul class="error-messages">
@@ -105,6 +96,10 @@ pub fn Signup(cx: Scope) -> impl IntoView {
                         <li>{x}</li>
                     </ul>
                 }),
+                Ok(SignupResponse::Success(x)) => {
+                    username.set(Some(x));
+                    use_navigate(cx)("/", NavigateOptions::default()).unwrap();
+                }
                 _ => set_error.set(view! {cx,
                     <ul class="error-messages">
                         <li>"There was a problem, try again later"</li>

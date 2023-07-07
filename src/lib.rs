@@ -1,8 +1,8 @@
 pub mod app;
 #[cfg(feature = "ssr")]
-pub mod database;
+pub mod auth;
 #[cfg(feature = "ssr")]
-pub mod files;
+pub mod database;
 pub mod routes;
 #[cfg(feature = "ssr")]
 pub mod setup;
@@ -17,4 +17,10 @@ pub fn hydrate() {
     console_error_panic_hook::set_once();
 
     leptos::mount_to_body(move |cx| view! { cx, <App/> });
+}
+
+#[cfg(feature = "hydrate")]
+#[wasm_bindgen::prelude::wasm_bindgen(module = "/js/jwt.js")]
+extern "C" {
+    fn decodeJWT(token: String) -> String;
 }
