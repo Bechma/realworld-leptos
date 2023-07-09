@@ -55,13 +55,11 @@ pub async fn signup_action(
 
 #[tracing::instrument]
 #[component]
-pub fn Signup(cx: Scope) -> impl IntoView {
+pub fn Signup(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
     let (error, set_error) = create_signal(cx, view! {cx, <ul></ul>});
 
     let signup_server_action = create_server_action::<SignupAction>(cx);
     let result_of_call = signup_server_action.value();
-
-    let username = use_context::<crate::app::AuthState>(cx).unwrap();
 
     create_effect(cx, move |_| {
         if let Some(msg) = result_of_call.get() {

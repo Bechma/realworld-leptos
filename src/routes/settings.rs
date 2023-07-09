@@ -92,11 +92,12 @@ pub struct UserGet {
     image: Option<String>,
 }
 
-#[tracing::instrument]
 #[component]
-pub fn Settings(cx: Scope) -> impl IntoView {
+pub fn Settings(
+    cx: Scope,
+    logout: Action<super::login::LogoutAction, Result<(), ServerFnError>>,
+) -> impl IntoView {
     let settings_server_action = create_server_action::<SettingsUpdateAction>(cx);
-    let logout_action = create_server_action::<super::login::LogoutAction>(cx);
     let (user, user_set) = create_signal(cx, crate::models::User::default());
     let error = create_rw_signal(cx, view! {cx, <ul></ul>});
     spawn_local(async move {
@@ -159,7 +160,7 @@ pub fn Settings(cx: Scope) -> impl IntoView {
                             </fieldset>
                         </ActionForm>
                         <hr />
-                        <ActionForm action=logout_action>
+                        <ActionForm action=logout>
                             <button type="submit" class="btn btn-outline-danger">"Or click here to logout."</button>
                         </ActionForm>
                     </div>

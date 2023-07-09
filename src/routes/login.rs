@@ -47,9 +47,8 @@ pub async fn logout_action(cx: Scope) -> Result<(), ServerFnError> {
     Ok(())
 }
 
-#[tracing::instrument]
 #[component]
-pub fn Login(cx: Scope) -> impl IntoView {
+pub fn Login(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
     let login_server_action = create_server_action::<LoginAction>(cx);
 
     let result_of_call = login_server_action.value();
@@ -60,9 +59,7 @@ pub fn Login(cx: Scope) -> impl IntoView {
                 match msg {
                     Ok(LoginMessages::Unsuccessful) => "Incorrect user or password",
                     Ok(LoginMessages::Successful) => {
-                        use_context::<crate::app::AuthState>(cx)
-                            .unwrap()
-                            .set(crate::auth::get_username(cx));
+                        username.set(crate::auth::get_username(cx));
                         request_animation_frame(move || {
                             use_navigate(cx)("/", NavigateOptions::default()).unwrap()
                         });

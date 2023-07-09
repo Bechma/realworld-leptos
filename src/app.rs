@@ -4,18 +4,14 @@ use leptos_router::*;
 
 use crate::routes::*;
 
-pub(crate) type AuthState = RwSignal<Option<String>>;
-
 #[tracing::instrument]
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context(cx);
-    let username = crate::auth::get_username(cx);
 
-    let username_signal = create_rw_signal(cx, username);
-
-    provide_context(cx, username_signal as AuthState);
+    let username = create_rw_signal(cx, crate::auth::get_username(cx));
+    let logout = create_server_action::<LogoutAction>(cx);
 
     view! {
         cx,
@@ -39,7 +35,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                         <li class="nav-item">
                             <A class="nav-link".to_string() href="/" exact=true><i class="ion-home"></i>" Home"</A>
                         </li>
-                        <NavItems/>
+                        <NavItems logout=logout username=username />
                     </ul>
                 </div>
             </nav>
@@ -47,9 +43,9 @@ pub fn App(cx: Scope) -> impl IntoView {
                 <Routes>
                     <Route path="/" view=|cx| view! { cx, <HomePage/> }/>
                     <Route path="/hell" view=|cx| view! { cx, <Hell/> }/>
-                    <Route path="/login" view=|cx| view! { cx, <Login/> }/>
-                    <Route path="/signup" view=|cx| view! { cx, <Signup/> }/>
-                    <Route path="/settings" view=|cx| view! { cx, <Settings/> }/>
+                    <Route path="/login" view=move |cx| view! { cx, <Login username=username/> }/>
+                    <Route path="/signup" view=move |cx| view! { cx, <Signup username=username/> }/>
+                    <Route path="/settings" view=move |cx| view! { cx, <Settings logout=logout /> }/>
                     <Route path="/editor/:slug?" view=|cx| view! { cx, <Editor/> }/>
                 </Routes>
             </main>
@@ -67,11 +63,12 @@ pub fn App(cx: Scope) -> impl IntoView {
     }
 }
 
-#[tracing::instrument]
-#[component(transparent)]
-fn NavItems(cx: Scope) -> impl IntoView {
-    let logout = create_server_action::<LogoutAction>(cx);
-    let username = use_context::<AuthState>(cx).unwrap();
+#[component]
+fn NavItems(
+    cx: Scope,
+    logout: Action<LogoutAction, Result<(), ServerFnError>>,
+    username: RwSignal<Option<String>>,
+) -> impl IntoView {
     let profile_href = move || {
         username
             .get()
@@ -86,17 +83,22 @@ fn NavItems(cx: Scope) -> impl IntoView {
     create_effect(cx, move |_| {
         let res = result_of_call.get();
         tracing::debug!("Result logout: {:?}", res);
-        if res.is_some() {
-            username.set(None);
-            request_animation_frame(move || {
-                let route = use_router(cx);
-                let path = route.pathname();
-                let path = path.get_untracked();
-                tracing::debug!("Logout request_animation_frame path: {path}");
-                if path.starts_with("/settings") || path.starts_with("/editor") {
-                    use_navigate(cx)("/login", NavigateOptions::default()).unwrap()
+        if let Some(x) = res {
+            match x {
+                Ok(()) => {
+                    username.set(None);
+                    request_animation_frame(move || {
+                        let route = use_router(cx);
+                        let path = route.pathname();
+                        let path = path.get_untracked();
+                        tracing::debug!("Logout request_animation_frame path: {path}");
+                        if path.starts_with("/settings") || path.starts_with("/editor") {
+                            use_navigate(cx)("/login", NavigateOptions::default()).unwrap()
+                        }
+                    })
                 }
-            })
+                Err(err) => tracing::error!("Problem during logout {err:?}"),
+            }
         }
     });
 
