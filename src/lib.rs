@@ -1,9 +1,9 @@
 pub mod app;
+pub(crate) mod auth;
 #[cfg(feature = "ssr")]
-pub mod auth;
-#[cfg(feature = "ssr")]
-pub mod database;
-pub mod routes;
+pub(crate) mod database;
+pub(crate) mod models;
+pub(crate) mod routes;
 #[cfg(feature = "ssr")]
 pub mod setup;
 
@@ -20,7 +20,8 @@ pub fn hydrate() {
 }
 
 #[cfg(feature = "hydrate")]
-#[wasm_bindgen::prelude::wasm_bindgen(module = "/js/jwt.js")]
+#[wasm_bindgen::prelude::wasm_bindgen(module = "/js/utils.js")]
 extern "C" {
     fn decodeJWT(token: String) -> String;
+    fn emailRegex(email: &str) -> bool;
 }

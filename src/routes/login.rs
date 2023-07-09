@@ -25,7 +25,7 @@ pub async fn login_action(
     .unwrap_or_default()
         == username
     {
-        super::set_username(cx, username).await;
+        crate::auth::set_username(cx, username).await;
         // leptos_axum::redirect(cx, "/"); // TODO remove when it doesn't provoke a full app reload
         Ok(LoginMessages::Successful)
     } else {
@@ -62,7 +62,7 @@ pub fn Login(cx: Scope) -> impl IntoView {
                     Ok(LoginMessages::Successful) => {
                         use_context::<crate::app::AuthState>(cx)
                             .unwrap()
-                            .set(super::get_username(cx));
+                            .set(crate::auth::get_username(cx));
                         request_animation_frame(move || {
                             use_navigate(cx)("/", NavigateOptions::default()).unwrap()
                         });

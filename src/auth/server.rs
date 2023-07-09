@@ -18,18 +18,12 @@ pub struct TokenClaims {
 }
 
 pub(crate) static JWT_SECRET: &[u8] = b"hello darkness my old friend";
-pub static AUTH_COOKIE: &str = "token";
 pub(crate) static REMOVE_COOKIE: &str = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
 pub async fn auth_middleware<B>(req: Request<B>, next: axum::middleware::Next<B>) -> Response {
     match get_username_from_headers(req.headers()) {
-        Some(token) => {
-            let Ok(claims) = decode_token(token) else {
-                tracing::info!("fail to decode cookie");
-                return redirect(req, next).await;
-            };
-
-            let Ok(_) = sqlx::query!("SELECT * FROM Users WHERE username = $1", claims.claims.sub)
+        Some(username) => {
+            let Ok(_) = sqlx::query!("SELECT * FROM Users WHERE username = $1", username)
                 .fetch_one(crate::database::get_db())
                 .await else {
                     tracing::info!("no user associated with this token");
@@ -39,7 +33,11 @@ pub async fn auth_middleware<B>(req: Request<B>, next: axum::middleware::Next<B>
             let path = req.uri().path();
             if path.starts_with("/login") || path.starts_with("/signup") {
                 // If the user is authenticated, we don't want to show the login or signup pages
-                return to("/");
+                return Response::builder()
+                    .status(StatusCode::FOUND)
+                    .header(header::LOCATION, "/")
+                    .body(axum::body::boxed(axum::body::Empty::new()))
+                    .unwrap();
             }
             next.run(req).await
         }
@@ -52,19 +50,15 @@ async fn redirect<B>(req: Request<B>, next: axum::middleware::Next<B>) -> Respon
 
     if path.starts_with("/settings") || path.starts_with("/editor") {
         // authenticated routes
-        to("/login")
+        Response::builder()
+            .status(StatusCode::FOUND)
+            .header(header::LOCATION, "/login")
+            .header(header::SET_COOKIE, REMOVE_COOKIE)
+            .body(axum::body::boxed(axum::body::Empty::new()))
+            .unwrap()
     } else {
         next.run(req).await
     }
-}
-
-fn to(path: &str) -> Response {
-    Response::builder()
-        .status(StatusCode::FOUND)
-        .header(header::LOCATION, path)
-        .header(header::SET_COOKIE, REMOVE_COOKIE)
-        .body(axum::body::boxed(axum::body::Empty::new()))
-        .unwrap()
 }
 
 pub(crate) fn decode_token(
@@ -77,13 +71,50 @@ pub(crate) fn decode_token(
     )
 }
 
+#[tracing::instrument]
 pub(crate) fn get_username_from_headers(headers: &axum::http::HeaderMap) -> Option<String> {
     headers.get(axum::http::header::COOKIE).and_then(|x| {
         x.to_str()
             .unwrap()
             .split("; ")
-            .find(|&x| x == crate::auth::AUTH_COOKIE)
+            .find(|&x| x.starts_with(super::AUTH_COOKIE))
             .and_then(|x| x.split('=').last().map(|x| x.to_string()))
-            .and_then(|x| crate::auth::decode_token(x).map(|jwt| jwt.claims.sub).ok())
+            .and_then(|x| decode_token(x).map(|jwt| jwt.claims.sub).ok())
     })
+}
+
+#[tracing::instrument]
+pub fn get_username(cx: leptos::Scope) -> Option<String> {
+    if let Some(req) = leptos::use_context::<leptos_axum::RequestParts>(cx) {
+        crate::auth::get_username_from_headers(&req.headers)
+    } else {
+        None
+    }
+}
+
+#[tracing::instrument]
+pub async fn set_username(cx: leptos::Scope, username: String) -> bool {
+    if let Some(res) = leptos::use_context::<leptos_axum::ResponseOptions>(cx) {
+        let claims = crate::auth::TokenClaims {
+            sub: username,
+            exp: (sqlx::types::chrono::Utc::now().timestamp() as usize) + 3_600_000,
+        };
+        let token = jsonwebtoken::encode(
+            &jsonwebtoken::Header::default(),
+            &claims,
+            &jsonwebtoken::EncodingKey::from_secret(crate::auth::JWT_SECRET),
+        )
+        .unwrap();
+        res.insert_header(
+            axum::http::header::SET_COOKIE,
+            axum::http::HeaderValue::from_str(&format!(
+                "{}={token}; path=/",
+                crate::auth::AUTH_COOKIE
+            ))
+            .expect("header value couldn't be set"),
+        );
+        true
+    } else {
+        false
+    }
 }

@@ -8,7 +8,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 axum = { version = "0.6", optional = true }
-axum-extra = { version = "0.7", features = ["cookie"], optional = true }
 jsonwebtoken = { version = "8", optional = true }
 tokio = { version = "1", optional = true }
 tower = { version = "0.4", optional = true }
@@ -20,10 +19,10 @@ serde = { version = "1.0.148", features = ["derive"] }
 
 console_error_panic_hook = { version = "0.1", optional = true }
 
-leptos = { version = "0.4", features = ["serde"]}
-leptos_meta = { version = "0.4" }
-leptos_axum = { version = "0.4", optional = true }
-leptos_router = { version = "0.4" }
+leptos = { git = "https://github.com/leptos-rs/leptos.git", features = ["serde"]}
+leptos_meta = { git = "https://github.com/leptos-rs/leptos.git" }
+leptos_axum = { git = "https://github.com/leptos-rs/leptos.git", optional = true }
+leptos_router = { git = "https://github.com/leptos-rs/leptos.git" }
 
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["fmt"]}
@@ -50,7 +49,6 @@ ssr = [
   "leptos_router/ssr",
   "dep:leptos_axum",
   "dep:axum",
-  "dep:axum-extra",
   "dep:jsonwebtoken",
   "dep:tokio",
   "dep:tower",
@@ -58,6 +56,10 @@ ssr = [
   "dep:sqlx",
   "dep:regex",
 ]
+
+[package.metadata.cargo-all-features]
+denylist = ["axum", "tower", "tower-http", "tokio", "sqlx", "leptos_axum", "jsonwebtoken", "regex"]
+skip_feature_sets = [["csr", "ssr"], ["csr", "hydrate"], ["ssr", "hydrate"]]
 
 [package.metadata.leptos]
 # The name used by wasm-bindgen/cargo-leptos for the JS/WASM bundle. Defaults to the crate name

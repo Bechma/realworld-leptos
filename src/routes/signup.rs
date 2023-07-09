@@ -2,35 +2,23 @@ use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 
-#[cfg(feature = "ssr")]
-static EMAIL_REGEX: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
-
 #[derive(serde::Deserialize, Clone, serde::Serialize)]
 pub enum SignupResponse {
     ValidationError(String),
     CreateUserError(String),
-    Success(String),
+    Success,
 }
 
-#[cfg(feature = "ssr")]
 #[tracing::instrument]
-fn validate_form(username: String, email: String, password: String) -> Result<(), String> {
-    if username.len() < 4 {
-        return Err("Username is too short, at least 4".into());
-    }
-
-    if !EMAIL_REGEX
-        .get_or_init(|| regex::Regex::new(r"^[\w\-\.]+@([\w-]+\.)+\w{2,4}$").unwrap())
-        .is_match(email.as_str())
-    {
-        return Err("You need to provide an email address".into());
-    }
-
-    if password.len() < 4 {
-        return Err("You need to provide a stronger password".into());
-    }
-
-    Ok(())
+pub fn validate_form(
+    username: String,
+    email: String,
+    password: String,
+) -> Result<crate::models::User, String> {
+    crate::models::User::default()
+        .set_username(username)?
+        .set_password(password)?
+        .set_email(email)
 }
 
 #[tracing::instrument]
@@ -41,35 +29,27 @@ pub async fn signup_action(
     email: String,
     password: String,
 ) -> Result<SignupResponse, ServerFnError> {
-    if let Err(x) = validate_form(username.clone(), email.clone(), password.clone()) {
-        return Ok(SignupResponse::ValidationError(x));
-    }
-    let mut conn = crate::database::get_db().acquire().await.unwrap();
-    match sqlx::query!(
-        "INSERT INTO Users(username, email, password) VALUES ($1, $2, crypt($3, gen_salt('bf')))",
-        username.clone(),
-        email,
-        password,
-    )
-    .execute(&mut conn)
-    .await
-    {
-        Ok(_) => {
-            super::set_username(cx, username.clone()).await;
-            Ok(SignupResponse::Success(username))
-        }
-        Err(x) => {
-            let x = x.to_string();
-            Ok(if x.contains("users_email_key") {
-                SignupResponse::CreateUserError("Duplicated email".to_string())
-            } else if x.contains("users_pkey") {
-                SignupResponse::CreateUserError("Duplicated user".to_string())
-            } else {
-                SignupResponse::CreateUserError(
-                    "There is an unknown problem, try again later".to_string(),
-                )
-            })
-        }
+    match validate_form(username.clone(), email, password) {
+        Ok(user) => match user.insert().await {
+            Ok(_) => {
+                crate::auth::set_username(cx, username).await;
+                Ok(SignupResponse::Success)
+            }
+            Err(x) => {
+                let x = x.to_string();
+                Ok(if x.contains("users_email_key") {
+                    SignupResponse::CreateUserError("Duplicated email".to_string())
+                } else if x.contains("users_pkey") {
+                    SignupResponse::CreateUserError("Duplicated user".to_string())
+                } else {
+                    tracing::error!("error from DB: {}", x);
+                    SignupResponse::CreateUserError(
+                        "There is an unknown problem, try again later".to_string(),
+                    )
+                })
+            }
+        },
+        Err(x) => Ok(SignupResponse::ValidationError(x)),
     }
 }
 
@@ -96,11 +76,11 @@ pub fn Signup(cx: Scope) -> impl IntoView {
                         <li>{x}</li>
                     </ul>
                 }),
-                Ok(SignupResponse::Success(x)) => {
-                    username.set(Some(x));
+                Ok(SignupResponse::Success) => {
+                    username.set(crate::auth::get_username(cx));
                     use_navigate(cx)("/", NavigateOptions::default()).unwrap();
                 }
-                _ => set_error.set(view! {cx,
+                Err(_) => set_error.set(view! {cx,
                     <ul class="error-messages">
                         <li>"There was a problem, try again later"</li>
                     </ul>
@@ -123,7 +103,19 @@ pub fn Signup(cx: Scope) -> impl IntoView {
 
                         {error}
 
-                        <ActionForm action=signup_server_action>
+                        <ActionForm action=signup_server_action on:submit=move |ev| {
+                            let Ok(data) = SignupAction::from_event(&ev) else {
+                                return ev.prevent_default();
+                            };
+                            if let Err(x) = validate_form(data.username, data.email, data.password) {
+                                set_error.set(view! {cx,
+                                    <ul class="error-messages">
+                                        <li>"Problem while validating: "{x}</li>
+                                    </ul>
+                                });
+                                ev.prevent_default();
+                            }
+                        }>
                             <fieldset class="form-group">
                                 <input name="username" class="form-control form-control-lg" type="text" placeholder="Your Username" required=true/>
                             </fieldset>

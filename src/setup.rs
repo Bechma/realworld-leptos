@@ -3,7 +3,10 @@ use leptos::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 
 pub async fn init_app(configuration_path: Option<&str>) {
-    tracing_subscriber::fmt().with_level(true).init();
+    tracing_subscriber::fmt()
+        .with_level(true)
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
     // Init the pool into static
     crate::database::init_db()
         .await
@@ -22,7 +25,7 @@ pub async fn init_app(configuration_path: Option<&str>) {
         // We need to register the server function handlers
         .route(
             "/api/*fn_name",
-            axum::routing::post(leptos_axum::handle_server_fns),
+            axum::routing::post(leptos_axum::handle_server_fns).get(leptos_axum::handle_server_fns),
         )
         .leptos_routes(&leptos_options, routes, |cx| view! { cx, <App/> })
         .fallback_service(serve_dir)

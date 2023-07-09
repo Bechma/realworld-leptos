@@ -13,3 +13,12 @@ export function decodeJWT(token) {
     }).join(''));
     return JSON.parse(jsonPayload).sub;
 }
+
+/**
+ * 
+ * @param {string} email 
+ * @returns {boolean}
+ */
+export function emailRegex(email) {
+    return /^[\w\-\.]+@([\w-]+\.)+\w{2,4}$/.test(email)
+}

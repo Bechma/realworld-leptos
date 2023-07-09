@@ -124,7 +124,7 @@ pub async fn editor_action(
     tag_list: String,
     slug: String,
 ) -> Result<EditorResponse, ServerFnError> {
-    let Some(author) = super::get_username(cx) else {
+    let Some(author) = crate::auth::get_username(cx) else {
         leptos_axum::redirect(cx, "/login");
         return Ok(EditorResponse::ValidationError("you should be authenticated".to_string()));
     };

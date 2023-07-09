@@ -2,10 +2,7 @@ use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 
-use crate::routes::editor::*;
-use crate::routes::get_username;
-use crate::routes::login::*;
-use crate::routes::signup::*;
+use crate::routes::*;
 
 pub(crate) type AuthState = RwSignal<Option<String>>;
 
@@ -14,7 +11,7 @@ pub(crate) type AuthState = RwSignal<Option<String>>;
 pub fn App(cx: Scope) -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context(cx);
-    let username = get_username(cx);
+    let username = crate::auth::get_username(cx);
 
     let username_signal = create_rw_signal(cx, username);
 
@@ -52,6 +49,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     <Route path="/hell" view=|cx| view! { cx, <Hell/> }/>
                     <Route path="/login" view=|cx| view! { cx, <Login/> }/>
                     <Route path="/signup" view=|cx| view! { cx, <Signup/> }/>
+                    <Route path="/settings" view=|cx| view! { cx, <Settings/> }/>
                     <Route path="/editor/:slug?" view=|cx| view! { cx, <Editor/> }/>
                 </Routes>
             </main>
