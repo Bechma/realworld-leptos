@@ -15,7 +15,7 @@ tower-http = { version = "0.4", features = ["fs", "trace"], optional = true }
 sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "postgres", "chrono", "offline"], optional = true}
 regex = { version = "1.8", optional = true }
 
-serde = { version = "1.0.148", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
 
 console_error_panic_hook = { version = "0.1", optional = true }
 
@@ -29,11 +29,7 @@ tracing-subscriber = { version = "0.3", features = ["fmt"]}
 tracing-wasm = { version = "0.2", optional = true }
 
 wasm-bindgen = "0.2"
-web-sys = { version = "0.3", features = [
-  "AbortController",
-  "AbortSignal",
-  "HtmlDocument",
-], optional = true }
+web-sys = { version = "0.3", features = ["HtmlDocument"], optional = true }
 
 [features]
 default = ["ssr", "hydrate"]

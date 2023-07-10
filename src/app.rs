@@ -41,8 +41,7 @@ pub fn App(cx: Scope) -> impl IntoView {
             </nav>
             <main>
                 <Routes>
-                    <Route path="/" view=|cx| view! { cx, <HomePage/> }/>
-                    <Route path="/hell" view=|cx| view! { cx, <Hell/> }/>
+                    <Route path="/" view=move |cx| view! { cx, <HomePage username=username/> }/>
                     <Route path="/login" view=move |cx| view! { cx, <Login username=username/> }/>
                     <Route path="/signup" view=move |cx| view! { cx, <Signup username=username/> }/>
                     <Route path="/settings" view=move |cx| view! { cx, <Settings logout=logout /> }/>
@@ -125,34 +124,5 @@ fn NavItems(
         <li class="nav-item" style=anonymous_style>
             <A class="nav-link".to_string() href="/login"><i class="ion-log-in"></i>" Login"</A>
         </li>
-    }
-}
-
-/// Renders the home page of your application.
-#[component]
-fn HomePage(cx: Scope) -> impl IntoView {
-    // Creates a reactive value to update the button
-    let (count, set_count) = create_signal(cx, 0);
-    let on_click = move |_| set_count.update(|count| *count += 1);
-
-    view! { cx,
-        <A href="/hell">"To hell"</A>
-        <h1>"Welcome to Leptos!"</h1>
-        <button on:click=on_click>"Click Me: " {count}</button>
-    }
-}
-
-/// Whata hell.
-#[component]
-fn Hell(cx: Scope) -> impl IntoView {
-    // Creates a reactive value to update the button
-    let (count, set_count) = create_signal(cx, 0);
-    let on_click = move |_| set_count.update(|c| *c += 1);
-
-    view! { cx,
-        <A href="/">"Back to heaven"</A>
-        <h1>"Born to be raise hell"</h1>
-        <button on:click=on_click>"Pelota: " {count}</button>
-        <button on:click=move |_| set_count.update(|c| *c = 0)>"A tomar por culo"</button>
     }
 }

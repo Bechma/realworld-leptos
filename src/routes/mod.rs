@@ -1,8 +1,10 @@
 mod editor;
+mod home;
 mod login;
 mod settings;
 mod signup;
 pub use editor::*;
+pub use home::*;
 pub use login::*;
 pub use settings::*;
 pub use signup::*;
