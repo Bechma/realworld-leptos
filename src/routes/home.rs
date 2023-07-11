@@ -1,6 +1,6 @@
+use crate::components::ArticlePreview;
 use leptos::*;
 use leptos_meta::*;
-use leptos_router::*;
 
 #[server(HomeAction, "/api", "GetJson")]
 async fn home_articles(
@@ -10,7 +10,7 @@ async fn home_articles(
     tag: String,
     my_feed: bool,
 ) -> Result<Vec<crate::models::ArticlePreview>, ServerFnError> {
-    let page = i64::from(page.saturating_sub(1));
+    let page = i64::from(page);
     let amount = i64::from(amount);
 
     Ok(
@@ -35,11 +35,24 @@ async fn get_tags() -> Result<Vec<String>, ServerFnError> {
         })
 }
 
+type ArticlesType =
+    Resource<(String, bool, u32, u32), Result<Vec<crate::models::ArticlePreview>, ServerFnError>>;
+
 /// Renders the home page of your application.
 #[component]
 pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
     let tag = create_rw_signal(cx, String::new());
     let my_feed = create_rw_signal(cx, false);
+    let page = create_rw_signal(cx, 0u32);
+    let amount = create_rw_signal(cx, 10u32);
+
+    let articles: ArticlesType = create_resource(
+        cx,
+        move || (tag.get(), my_feed.get(), page.get(), amount.get()),
+        move |(tag, my_feed, page, amount)| async move {
+            home_articles(cx, page, amount, tag, my_feed).await
+        },
+    );
 
     let class_my_feed = move || {
         tracing::debug!("set class_my_feed");
@@ -81,15 +94,15 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                                     <a class={class_global_feed} href="" on:click=move |_| if my_feed.get() {my_feed.set(false)}>"Global Feed"</a>
                                 </li>
                                 <li class="nav-item pull-xs-right">
-                                    <form action="{{index}}" method="get" style="display: inline-block;">
+                                    <div style="display: inline-block;">
                                         //<input type="hidden" name="page" value="{{params.page}}">
                                         //{% if params.myfeed %}<input type="hidden" name="myfeed" value="true">{% endif %}
                                         //{% if params.tag %}<input type="hidden" name="tag" value="{{params.tag}}">{% endif %}
                                         <button type="submit" class="btn btn-sm btn-outline-primary">
                                             "Articles to display"
                                         </button>
-                                        // <input style="width: 4em" type="number" name="amount" value="{{params.amount}}">
-                                    </form>
+                                        <input style="width: 4em" type="number" name="amount" prop:value=move || amount.get() />
+                                    </div>
                                 </li>
                             </ul>
                         </div>
@@ -97,6 +110,7 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                         // {% for a in articles %}
                         // {{macros::preview(article=a)}}
                         // {% endfor %}
+                        <ArticlePreviewList username=username articles=articles/>
                     </div>
 
                     <div class="col-md-3">
@@ -106,26 +120,71 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                         </div>
                     </div>
                     <ul class="pagination">
-                        // {% if params.page and params.page > 1 %}
-                        <li class="page-item">
-                            <a class="btn btn-primary"
-                                /*href="{{index}}?page={{params.page-1}}&amount={{params.amount}}&myfeed={{params.myfeed}}{%if params.tag %}&tag={{params.tag}}{% endif %}"*/>
-                                "<< Previous page"
-                            </a>
-                        </li>
-                        // {% endif %}
-                        // {% if params.amount and articles | length == params.amount%}
-                        <li class="page-item">
-                            <a class="btn btn-primary"
-                                /*href="{{index}}?page={{params.page+1}}&amount={{params.amount}}&myfeed={{params.myfeed}}{%if params.tag %}&tag={{params.tag}}{% endif %}"*/>
-                                "Next page >>"
-                            </a>
-                        </li>
-                        // {% endif %}
+                        <Show
+                            when=move || {page.get() > 0}
+                            fallback=|cx| view!{cx, <p>"hello guys"</p>}
+                        >
+                            <li class="page-item">
+                                <a class="btn btn-primary" on:click=move |_| page.update(|x| *x -= 1)>
+                                    "<< Previous page"
+                                </a>
+                            </li>
+                        </Show>
+                        <Show
+                            when=move || {articles.with(cx, |x| x.as_ref().map(|y| y.len()).unwrap_or_default()).unwrap_or_default() < amount.get() as usize}
+                            fallback=|_| ()
+                        >
+                            <li class="page-item">
+                                <a class="btn btn-primary" on:click=move |_| page.update(|x| *x += 1)>
+                                    "Next page >>"
+                                </a>
+                            </li>
+                        </Show>
                     </ul>
                 </div>
             </div>
         </div>
+    }
+}
+
+#[component]
+fn ArticlePreviewList(
+    cx: Scope,
+    username: RwSignal<Option<String>>,
+    articles: ArticlesType,
+) -> impl IntoView {
+    // TODO: When the user logouts in the main screen, there's a request to articles... WHY?
+    let articles_view = move || {
+        articles.with(cx, move |x| {
+            x.clone().map(move |res| {
+                view! {cx,
+                    <For
+                        each=move || res.clone().into_iter().enumerate()
+                        key=|(i, _)| *i
+                        view=move |cx, (_, article): (usize, crate::models::ArticlePreview)| {
+                            let article = create_rw_signal(cx, article);
+                            view! {cx,
+                                <ArticlePreview article=article username=username />
+                            }
+                        }
+                    />
+                }
+            })
+        })
+    };
+
+    view! {cx,
+        <Suspense fallback=move || view! {cx, <p>"Loading Articles"</p> }>
+            <ErrorBoundary fallback=|cx, _| {
+                view! { cx,
+                    <ul class="error-messages">
+                        <li>"Something went wrong."</li>
+                    </ul>
+                }
+            }>
+                {articles_view}
+            </ErrorBoundary>
+        </Suspense>
     }
 }
 
@@ -146,7 +205,7 @@ fn TagList(cx: Scope, tag: RwSignal<String>) -> impl IntoView {
                         view=move |cx, (_, t): (usize, String)| {
                             let class = if t == tag_elected {"tag-pill tag-default tag-primary"} else {"tag-pill tag-default"};
                             let t2 = t.to_string();
-                            view!{cx, <a href="" class={class}  on:click=move |_| {
+                            view!{cx, <a href="" class=class  on:click=move |_| {
                                 tag.update(|current_tag| {
                                     tracing::debug!("current_tag={current_tag},new_tag={t}");
                                     *current_tag = if current_tag == &t {
@@ -168,29 +227,14 @@ fn TagList(cx: Scope, tag: RwSignal<String>) -> impl IntoView {
             <Suspense fallback=move || view! {cx, <p>"Loading Tags"</p> }>
                 <ErrorBoundary fallback=|cx, _| {
                     view! { cx,
-                        <div class="error">
-                            <p>"Something went wrong."</p>
-                        </div>
+                        <ul class="error-messages">
+                            <li>"Something went wrong."</li>
+                        </ul>
                     }
                 }>
                     {tag_view}
                 </ErrorBoundary>
             </Suspense>
         </div>
-    }
-}
-
-/// Whata hell.
-#[component]
-pub fn Hell(cx: Scope) -> impl IntoView {
-    // Creates a reactive value to update the button
-    let (count, set_count) = create_signal(cx, 0);
-    let on_click = move |_| set_count.update(|c| *c += 1);
-
-    view! { cx,
-        <A href="/">"Back to heaven"</A>
-        <h1>"Born to be raise hell"</h1>
-        <button on:click=on_click>"Pelota: " {count}</button>
-        <button on:click=move |_| set_count.update(|c| *c = 0)>"A tomar por culo"</button>
     }
 }

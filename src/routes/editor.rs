@@ -9,7 +9,7 @@ pub enum EditorResponse {
     Success(String),
 }
 
-#[cfg(feature = "ssr")]
+#[allow(dead_code)] // feature = hydrate doesn't use the fields
 #[derive(Debug)]
 struct ArticleUpdate {
     title: String,
@@ -18,7 +18,6 @@ struct ArticleUpdate {
     tag_list: std::collections::HashSet<String>,
 }
 
-#[cfg(feature = "ssr")]
 #[tracing::instrument]
 fn validate_article(
     title: String,
@@ -144,7 +143,7 @@ pub async fn editor_action(
 #[tracing::instrument]
 #[component]
 pub fn Editor(cx: Scope) -> impl IntoView {
-    let (error, set_error) = create_signal(cx, view! {cx, <ul></ul>});
+    let error = create_rw_signal(cx, view! {cx, <ul></ul>});
 
     let editor_server_action = create_server_action::<EditorAction>(cx);
     let result_of_call = editor_server_action.value();
@@ -156,12 +155,12 @@ pub fn Editor(cx: Scope) -> impl IntoView {
     create_effect(cx, move |_| {
         if let Some(msg) = result_of_call.get() {
             match msg {
-                Ok(EditorResponse::ValidationError(x)) => set_error.set(view! {cx,
+                Ok(EditorResponse::ValidationError(x)) => error.set(view! {cx,
                     <ul class="error-messages">
                         <li>"Problem while validating: "{x}</li>
                     </ul>
                 }),
-                Ok(EditorResponse::UpdateError) => set_error.set(view! {cx,
+                Ok(EditorResponse::UpdateError) => error.set(view! {cx,
                     <ul class="error-messages">
                         <li>"Error while updating the article, please, try again later"</li>
                     </ul>
@@ -169,7 +168,7 @@ pub fn Editor(cx: Scope) -> impl IntoView {
                 Ok(EditorResponse::Success(x)) => {
                     navigate(&format!("/article/{x}"), NavigateOptions::default()).unwrap()
                 }
-                Err(x) => set_error.set(view! {cx,
+                Err(x) => error.set(view! {cx,
                     <ul class="error-messages">
                         <li>"Unexpected error: "{x.to_string()}</li>
                     </ul>
@@ -186,7 +185,19 @@ pub fn Editor(cx: Scope) -> impl IntoView {
                 <div class="row">
                     {error}
                     <div class="col-md-10 offset-md-1 col-xs-12">
-                        <ActionForm action=editor_server_action>
+                        <ActionForm action=editor_server_action on:submit=move |ev| {
+                            let Ok(data) = EditorAction::from_event(&ev) else {
+                                return ev.prevent_default();
+                            };
+                            if let Err(x) = validate_article(data.title, data.description, data.body, data.tag_list) {
+                                error.set(view! {cx,
+                                    <ul class="error-messages">
+                                        <li>"Problem while validating: "{format!("{x:?}")}</li>
+                                    </ul>
+                                });
+                                ev.prevent_default();
+                            }
+                        }>
                             <fieldset>
                                 <fieldset class="form-group">
                                     <input name="title" type="text" class="form-control form-control-lg"

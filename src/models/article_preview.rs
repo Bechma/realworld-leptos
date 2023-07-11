@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ArticlePreview {
     pub slug: String,
     pub title: String,
@@ -9,7 +9,7 @@ pub struct ArticlePreview {
     pub favorites_count: Option<i64>,
     pub author: User,
     pub fav: bool,
-    pub tags: String,
+    pub tags: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -71,7 +71,12 @@ LIMIT $1 OFFSET $2",
                 image: x.image,
                 following: x.following.unwrap_or_default(),
             },
-            tags: x.tag_list.unwrap_or_default(),
+            tags: x
+                .tag_list
+                .unwrap_or_default()
+                .split(' ')
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>(),
         })
         .fetch_all(crate::database::get_db())
         .await

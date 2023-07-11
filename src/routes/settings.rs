@@ -93,10 +93,7 @@ pub struct UserGet {
 }
 
 #[component]
-pub fn Settings(
-    cx: Scope,
-    logout: Action<super::login::LogoutAction, Result<(), ServerFnError>>,
-) -> impl IntoView {
+pub fn Settings(cx: Scope, logout: crate::auth::LogoutSignal) -> impl IntoView {
     let settings_server_action = create_server_action::<SettingsUpdateAction>(cx);
     let (user, user_set) = create_signal(cx, crate::models::User::default());
     let error = create_rw_signal(cx, view! {cx, <ul></ul>});

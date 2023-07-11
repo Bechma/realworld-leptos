@@ -1,57 +1,7 @@
+use crate::auth::{validate_signup, SignupAction, SignupResponse};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
-
-#[derive(serde::Deserialize, Clone, serde::Serialize)]
-pub enum SignupResponse {
-    ValidationError(String),
-    CreateUserError(String),
-    Success,
-}
-
-#[tracing::instrument]
-pub fn validate_form(
-    username: String,
-    email: String,
-    password: String,
-) -> Result<crate::models::User, String> {
-    crate::models::User::default()
-        .set_username(username)?
-        .set_password(password)?
-        .set_email(email)
-}
-
-#[tracing::instrument]
-#[server(SignupAction, "/api")]
-pub async fn signup_action(
-    cx: Scope,
-    username: String,
-    email: String,
-    password: String,
-) -> Result<SignupResponse, ServerFnError> {
-    match validate_form(username.clone(), email, password) {
-        Ok(user) => match user.insert().await {
-            Ok(_) => {
-                crate::auth::set_username(cx, username).await;
-                Ok(SignupResponse::Success)
-            }
-            Err(x) => {
-                let x = x.to_string();
-                Ok(if x.contains("users_email_key") {
-                    SignupResponse::CreateUserError("Duplicated email".to_string())
-                } else if x.contains("users_pkey") {
-                    SignupResponse::CreateUserError("Duplicated user".to_string())
-                } else {
-                    tracing::error!("error from DB: {}", x);
-                    SignupResponse::CreateUserError(
-                        "There is an unknown problem, try again later".to_string(),
-                    )
-                })
-            }
-        },
-        Err(x) => Ok(SignupResponse::ValidationError(x)),
-    }
-}
 
 #[tracing::instrument]
 #[component]
@@ -105,7 +55,7 @@ pub fn Signup(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
                             let Ok(data) = SignupAction::from_event(&ev) else {
                                 return ev.prevent_default();
                             };
-                            if let Err(x) = validate_form(data.username, data.email, data.password) {
+                            if let Err(x) = validate_signup(data.username, data.email, data.password) {
                                 set_error.set(view! {cx,
                                     <ul class="error-messages">
                                         <li>"Problem while validating: "{x}</li>

@@ -1,51 +1,7 @@
+use crate::auth::{LoginAction, LoginMessages};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
-
-#[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
-pub enum LoginMessages {
-    Successful,
-    Unsuccessful,
-}
-
-#[server(LoginAction, "/api")]
-#[tracing::instrument]
-pub async fn login_action(
-    cx: Scope,
-    username: String,
-    password: String,
-) -> Result<LoginMessages, ServerFnError> {
-    if sqlx::query_scalar!(
-        "SELECT username FROM Users where username=$1 and password=crypt($2, password)",
-        username,
-        password,
-    )
-    .fetch_one(crate::database::get_db())
-    .await
-    .unwrap_or_default()
-        == username
-    {
-        crate::auth::set_username(cx, username).await;
-        // leptos_axum::redirect(cx, "/"); // TODO remove when it doesn't provoke a full app reload
-        Ok(LoginMessages::Successful)
-    } else {
-        let response_options = use_context::<leptos_axum::ResponseOptions>(cx).unwrap();
-        response_options.set_status(axum::http::StatusCode::FORBIDDEN);
-        Ok(LoginMessages::Unsuccessful)
-    }
-}
-
-#[server(LogoutAction, "/api")]
-#[tracing::instrument]
-pub async fn logout_action(cx: Scope) -> Result<(), ServerFnError> {
-    let response_options = use_context::<leptos_axum::ResponseOptions>(cx).unwrap();
-    response_options.insert_header(
-        axum::http::header::SET_COOKIE,
-        axum::http::HeaderValue::from_str(crate::auth::REMOVE_COOKIE)
-            .expect("header value couldn't be set"),
-    );
-    Ok(())
-}
 
 #[component]
 pub fn Login(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
@@ -55,7 +11,7 @@ pub fn Login(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
 
     let error = move || {
         result_of_call.with(|msg| {
-            if let Some(msg) = msg {
+            let err = if let Some(msg) = msg {
                 match msg {
                     Ok(LoginMessages::Unsuccessful) => "Incorrect user or password",
                     Ok(LoginMessages::Successful) => {
@@ -69,7 +25,8 @@ pub fn Login(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
                 }
             } else {
                 ""
-            }
+            };
+            view! {cx, <li>{err}</li>}
         })
     };
 
@@ -82,7 +39,7 @@ pub fn Login(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
                         <h1 class="text-xs-center">"Login"</h1>
 
                         <ul class="error-messages">
-                            <li>{error}</li>
+                            {error}
                         </ul>
 
                         <ActionForm action=login_server_action>
