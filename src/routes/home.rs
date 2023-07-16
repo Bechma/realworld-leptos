@@ -107,9 +107,6 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                             </ul>
                         </div>
 
-                        // {% for a in articles %}
-                        // {{macros::preview(article=a)}}
-                        // {% endfor %}
                         <ArticlePreviewList username=username articles=articles/>
                     </div>
 
@@ -122,7 +119,7 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                     <ul class="pagination">
                         <Show
                             when=move || {page.get() > 0}
-                            fallback=|cx| view!{cx, <p>"hello guys"</p>}
+                            fallback=|_| ()
                         >
                             <li class="page-item">
                                 <a class="btn btn-primary" on:click=move |_| page.update(|x| *x -= 1)>
@@ -130,16 +127,18 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                                 </a>
                             </li>
                         </Show>
-                        <Show
-                            when=move || {articles.with(cx, |x| x.as_ref().map(|y| y.len()).unwrap_or_default()).unwrap_or_default() < amount.get() as usize}
-                            fallback=|_| ()
-                        >
-                            <li class="page-item">
-                                <a class="btn btn-primary" on:click=move |_| page.update(|x| *x += 1)>
-                                    "Next page >>"
-                                </a>
-                            </li>
-                        </Show>
+                        <Suspense fallback=|| ()>
+                            <Show
+                                when=move || {articles.with(cx, |x| x.as_ref().map(|y| y.len()).unwrap_or_default()).unwrap_or_default() >= amount.get() as usize}
+                                fallback=|_| ()
+                            >
+                                <li class="page-item">
+                                    <a class="btn btn-primary" on:click=move |_| page.update(|x| *x += 1)>
+                                        "Next page >>"
+                                    </a>
+                                </li>
+                            </Show>
+                        </Suspense>
                     </ul>
                 </div>
             </div>

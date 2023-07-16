@@ -1,4 +1,49 @@
 use leptos::*;
+use leptos_router::*;
+
+#[server(FollowAction, "/api")]
+#[tracing::instrument]
+pub async fn follow_action(cx: Scope, other_user: String) -> Result<bool, ServerFnError> {
+    let Some(username) = crate::auth::get_username(cx) else {
+        return Err(ServerFnError::ServerError("You need to be authenticated".into()));
+    };
+    toggle_follow(username, other_user).await.map_err(|x| {
+        tracing::error!("problem while updating the database: {x:?}");
+        ServerFnError::ServerError("error while updating the follow".into())
+    })
+}
+
+#[cfg(feature = "ssr")]
+#[tracing::instrument]
+async fn toggle_follow(current: String, other: String) -> Result<bool, sqlx::Error> {
+    let db = crate::database::get_db();
+    match sqlx::query!(
+        "SELECT * FROM Follows WHERE follower=$1 and influencer=$2",
+        current,
+        other
+    )
+    .fetch_one(db)
+    .await
+    {
+        Ok(_) => sqlx::query!(
+            "DELETE FROM Follows WHERE follower=$1 and influencer=$2",
+            current,
+            other
+        )
+        .execute(db)
+        .await
+        .map(|_| false),
+        Err(sqlx::error::Error::RowNotFound) => sqlx::query!(
+            "INSERT INTO Follows(follower, influencer) VALUES ($1, $2)",
+            current,
+            other
+        )
+        .execute(db)
+        .await
+        .map(|_| true),
+        Err(x) => Err(x),
+    }
+}
 
 #[component]
 pub fn ButtonFollow(
@@ -6,25 +51,84 @@ pub fn ButtonFollow(
     username: crate::auth::UsernameSignal,
     article: super::article_preview::ArticleSignal,
 ) -> impl IntoView {
+    let follow = create_server_action::<FollowAction>(cx);
+    let result_call = follow.value();
+    let follow_cond = move || {
+        if let Some(x) = result_call.get() {
+            match x {
+                Ok(x) => x,
+                Err(err) => {
+                    tracing::error!("problem while following {err:?}");
+                    article.with(|x| x.author.following)
+                }
+            }
+        } else {
+            article.with(|x| x.author.following)
+        }
+    };
+
     view! {cx,
         <Show
-            when=move || username.get() == article.with(|x| Some(x.author.username.to_string()))
+            when=move || username.get() != article.with(|x| Some(x.author.username.to_string()))
             fallback=|_| ()
         >
             //<form method="post" action="{{routes.profile ~ '/' ~ user}}{% if following %}/unfollow{% else %}/follow{% endif %}"
-            <form
-                style="display: inline-block;" class="pull-xs-right">
+            <ActionForm action=follow class="inline pull-xs-right">
                 <button type="submit" class="btn btn-sm btn-outline-secondary">
                     <Show
-                        when=move || article.with(|x| x.author.following)
+                        when=follow_cond
                         fallback=|cx| view!{cx, <i class="ion-plus-round"></i>" Follow"}
                     >
                         <i class="ion-close-round"></i>" Unfollow"
                     </Show>
                     {article.with(|x| x.author.username.to_string())}
                 </button>
-            </form>
+            </ActionForm>
         </Show>
+    }
+}
+
+#[server(FavAction, "/api")]
+#[tracing::instrument]
+pub async fn fav_action(cx: Scope, slug: String) -> Result<bool, ServerFnError> {
+    let Some(username) = crate::auth::get_username(cx) else {
+        return Err(ServerFnError::ServerError("You need to be authenticated".into()));
+    };
+    toggle_fav(slug, username).await.map_err(|x| {
+        tracing::error!("problem while updating the database: {x:?}");
+        ServerFnError::ServerError("error while updating the follow".into())
+    })
+}
+
+#[cfg(feature = "ssr")]
+#[tracing::instrument]
+async fn toggle_fav(slug: String, username: String) -> Result<bool, sqlx::Error> {
+    let db = crate::database::get_db();
+    match sqlx::query!(
+        "SELECT * FROM FavArticles WHERE article=$1 and username=$2",
+        slug,
+        username
+    )
+    .fetch_one(db)
+    .await
+    {
+        Ok(_) => sqlx::query!(
+            "DELETE FROM FavArticles WHERE article=$1 and username=$2",
+            slug,
+            username
+        )
+        .execute(db)
+        .await
+        .map(|_| false),
+        Err(sqlx::error::Error::RowNotFound) => sqlx::query!(
+            "INSERT INTO FavArticles(article, username) VALUES ($1, $2)",
+            slug,
+            username
+        )
+        .execute(db)
+        .await
+        .map(|_| true),
+        Err(x) => Err(x),
     }
 }
 
@@ -34,9 +138,34 @@ pub fn ButtonFav(
     username: crate::auth::UsernameSignal,
     article: super::article_preview::ArticleSignal,
 ) -> impl IntoView {
-    let fav = move || article.with(|x| x.fav);
-    let fav_count = move || article.with(|x| x.favorites_count.unwrap_or_default());
-    let heart_class = move || format!("ion-heart{}", if fav() { "-broken" } else { "" });
+    let make_fav = create_server_action::<FavAction>(cx);
+    let result_make_fav = make_fav.value();
+    let fav_count = move || {
+        if let Some(x) = result_make_fav.get() {
+            match x {
+                Ok(result) => {
+                    article.update(move |x| {
+                        x.fav = !x.fav;
+                        x.favorites_count = match x.favorites_count {
+                            Some(x) => {
+                                let int = x + if result { 1 } else { -1 };
+                                if int <= 0 {
+                                    None
+                                } else {
+                                    Some(int)
+                                }
+                            }
+                            None => Some(1),
+                        }
+                    });
+                }
+                Err(err) => {
+                    tracing::error!("problem while fav {err:?}");
+                }
+            }
+        }
+        article.with(|x| x.favorites_count.unwrap_or_default())
+    };
 
     view! {cx,
         <Show
@@ -50,13 +179,17 @@ pub fn ButtonFav(
             }
         >
             //<form method="post" action="{{routes.article ~ '/' ~ article.slug}}{% if article.fav %}/unfav{% else %}/fav{% endif %}"
-            <form
-                style="display: inline-block;" class="pull-xs-right">
+            <ActionForm action=make_fav class="inline pull-xs-right">
+                <input type="hidden" name="slug" value=move || article.with(|x| x.slug.to_string()) />
                 <button type="submit" class="btn btn-sm btn-outline-primary">
-                <i class=heart_class></i>
-                {move || if fav() {" Unfav "} else {" Fav "}}
+                <Show
+                    when=move || article.with(|x| x.fav)
+                    fallback=move |cx| {view!{cx, <i class="ion-heart"></i>" Fav "}}
+                >
+                    <i class="ion-heart-broken"></i>" Unfav "
+                </Show>
                 <span class="counter">"("{fav_count}")"</span></button>
-            </form>
+            </ActionForm>
         </Show>
     }
 }
