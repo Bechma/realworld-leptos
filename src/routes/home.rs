@@ -1,6 +1,7 @@
 use crate::components::ArticlePreview;
 use leptos::*;
 use leptos_meta::*;
+use wasm_bindgen::JsCast;
 
 #[server(HomeAction, "/api", "GetJson")]
 async fn home_articles(
@@ -95,13 +96,19 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                                 </li>
                                 <li class="nav-item pull-xs-right">
                                     <div style="display: inline-block;">
-                                        //<input type="hidden" name="page" value="{{params.page}}">
-                                        //{% if params.myfeed %}<input type="hidden" name="myfeed" value="true">{% endif %}
-                                        //{% if params.tag %}<input type="hidden" name="tag" value="{{params.tag}}">{% endif %}
-                                        <button type="submit" class="btn btn-sm btn-outline-primary">
-                                            "Articles to display"
-                                        </button>
-                                        <input style="width: 4em" type="number" name="amount" prop:value=move || amount.get() />
+                                        "Articles to display | "
+                                        <input style="width: 4em" type="number" value=amount.get_untracked() min="1"
+                                            on:input=move |ev| {
+                                                amount.set(
+                                                    ev.target()
+                                                        .expect("amount signal: Event doesn't have a target")
+                                                        .dyn_into::<web_sys::HtmlInputElement>()
+                                                        .expect("amount signal: it should be an input element")
+                                                        .value()
+                                                        .parse::<u32>()
+                                                        .expect("amount signal: cannot convert the pages input to a number"),
+                                                );
+                                            }  />
                                     </div>
                                 </li>
                             </ul>
@@ -129,6 +136,7 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                         </Show>
                         <Suspense fallback=|| ()>
                             <Show
+                                // TODO: fix this dummy logic
                                 when=move || {articles.with(cx, |x| x.as_ref().map(|y| y.len()).unwrap_or_default()).unwrap_or_default() >= amount.get() as usize}
                                 fallback=|_| ()
                             >

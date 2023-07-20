@@ -29,13 +29,12 @@ tracing-subscriber = { version = "0.3", features = ["fmt"]}
 tracing-wasm = { version = "0.2", optional = true }
 
 wasm-bindgen = "0.2"
-web-sys = { version = "0.3", features = ["HtmlDocument"], optional = true }
+web-sys = { version = "0.3", features = ["HtmlDocument"] }
 
 [features]
 default = ["ssr", "hydrate"]
 hydrate = [
   "leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate",
-  "dep:web-sys",
   "dep:tracing-wasm",
   "dep:console_error_panic_hook",
 ]
