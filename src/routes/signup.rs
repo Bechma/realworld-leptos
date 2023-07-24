@@ -6,37 +6,24 @@ use leptos_router::*;
 #[tracing::instrument]
 #[component]
 pub fn Signup(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
-    let (error, set_error) = create_signal(cx, view! {cx, <ul></ul>});
-
     let signup_server_action = create_server_action::<SignupAction>(cx);
     let result_of_call = signup_server_action.value();
 
-    create_effect(cx, move |_| {
-        if let Some(msg) = result_of_call.get() {
-            match msg {
-                Ok(SignupResponse::ValidationError(x)) => set_error.set(view! {cx,
-                    <ul class="error-messages">
-                        <li>"Problem while validating: "{x}</li>
-                    </ul>
-                }),
-                Ok(SignupResponse::CreateUserError(x)) => set_error.set(view! {cx,
-                    <ul class="error-messages">
-                        <li>{x}</li>
-                    </ul>
-                }),
+    let error_cb = move || {
+        result_of_call
+            .get()
+            .map(|msg| match msg {
+                Ok(SignupResponse::ValidationError(x)) => format!("Problem while validating: {x}"),
+                Ok(SignupResponse::CreateUserError(x)) => x,
                 Ok(SignupResponse::Success) => {
                     username.set(crate::auth::get_username(cx));
                     use_navigate(cx)("/", NavigateOptions::default()).unwrap();
+                    "".into()
                 }
-                Err(_) => set_error.set(view! {cx,
-                    <ul class="error-messages">
-                        <li>"There was a problem, try again later"</li>
-                    </ul>
-                }),
-            }
-        }
-        tracing::debug!("Signup Effect!");
-    });
+                Err(_) => "There was a problem, try again later".into(),
+            })
+            .unwrap_or_default()
+    };
 
     view! { cx,
         <Title text="Signup"/>
@@ -49,18 +36,16 @@ pub fn Signup(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
                             <A href="/login">"Have an account?"</A>
                         </p>
 
-                        {error}
+                        <p class="error-messages text-xs-center">
+                            {error_cb}
+                        </p>
 
                         <ActionForm action=signup_server_action on:submit=move |ev| {
                             let Ok(data) = SignupAction::from_event(&ev) else {
                                 return ev.prevent_default();
                             };
                             if let Err(x) = validate_signup(data.username, data.email, data.password) {
-                                set_error.set(view! {cx,
-                                    <ul class="error-messages">
-                                        <li>"Problem while validating: "{x}</li>
-                                    </ul>
-                                });
+                                result_of_call.set(Some(Ok(SignupResponse::ValidationError(x))));
                                 ev.prevent_default();
                             }
                         }>

@@ -11,8 +11,8 @@ pub fn Login(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
 
     let error = move || {
         result_of_call.with(|msg| {
-            let err = if let Some(msg) = msg {
-                match msg {
+            msg.as_ref()
+                .map(|inner| match inner {
                     Ok(LoginMessages::Unsuccessful) => "Incorrect user or password",
                     Ok(LoginMessages::Successful) => {
                         username.set(crate::auth::get_username(cx));
@@ -22,11 +22,8 @@ pub fn Login(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
                         ""
                     }
                     Err(_) => "There was a problem, try again later",
-                }
-            } else {
-                ""
-            };
-            view! {cx, <li>{err}</li>}
+                })
+                .unwrap_or_default()
         })
     };
 
@@ -38,9 +35,9 @@ pub fn Login(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
                     <div class="col-md-6 offset-md-3 col-xs-12">
                         <h1 class="text-xs-center">"Login"</h1>
 
-                        <ul class="error-messages">
+                        <p class="error-messages text-xs-center">
                             {error}
-                        </ul>
+                        </p>
 
                         <ActionForm action=login_server_action>
                             <fieldset class="form-group">

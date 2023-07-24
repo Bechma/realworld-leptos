@@ -5,7 +5,7 @@ use leptos_axum::{generate_route_list, LeptosRoutes};
 pub async fn init_app(configuration_path: Option<&str>) {
     tracing_subscriber::fmt()
         .with_level(true)
-        .with_max_level(tracing::Level::DEBUG)
+        .with_max_level(tracing::Level::INFO)
         .init();
     // Init the pool into static
     crate::database::init_db()
