@@ -67,6 +67,7 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
             pagination
                 .get()
                 .unwrap_or_default()
+                .reset_page()
                 .set_my_feed(true)
                 .to_string()
         } else {
@@ -111,7 +112,7 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                                 <li class="nav-item">
                                     <a class="nav-link"
                                     class:active=move || !pagination.with(|x| x.as_ref().map(|x| x.get_my_feed()).unwrap_or_default())
-                                    href=move || pagination.get().unwrap_or_default().set_my_feed(false).to_string()>
+                                    href=move || pagination.get().unwrap_or_default().reset_page().set_my_feed(false).to_string()>
                                         "Global Feed"
                                     </a>
                                 </li>
@@ -151,9 +152,10 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                             <Show
                                 // TODO: fix this dummy logic
                                 when=move || {
-                                    articles.with(cx, |x| x.as_ref().map(|y| y.len()).unwrap_or_default()).unwrap_or_default()
-                                    >=
-                                    pagination.with(|x| x.as_ref().map(|y| y.get_page()).unwrap_or_default()) as usize}
+                                    let n_articles = articles.with(cx, |x| x.as_ref().map(|y| y.len()).unwrap_or_default()).unwrap_or_default();
+                                    n_articles > 0 && n_articles >=
+                                    pagination.with(|x| x.as_ref().map(|y| y.get_amount()).unwrap_or_default()) as usize
+                                }
                                 fallback=|_| ()
                             >
                                 <li class="page-item">
@@ -199,11 +201,7 @@ fn ArticlePreviewList(
     view! {cx,
         <Suspense fallback=move || view! {cx, <p>"Loading Articles"</p> }>
             <ErrorBoundary fallback=|cx, _| {
-                view! { cx,
-                    <ul class="error-messages">
-                        <li>"Something went wrong."</li>
-                    </ul>
-                }
+                view! { cx, <p class="error-messages text-xs-center">"Something went wrong."</p>}
             }>
                 {articles_view}
             </ErrorBoundary>
@@ -217,7 +215,6 @@ fn TagList(cx: Scope) -> impl IntoView {
     let tag_list = create_resource(cx, || (), |_| async { get_tags().await });
 
     // TODO: Wonder if it's possible to reduce reduce the 2x clone
-    // TODO: Every click on any tag will trigger the whole For... I just want to re-render for 1 element
     let tag_view = move || {
         let tag_elected = pagination.with(|x| {
             x.as_ref()
@@ -232,12 +229,13 @@ fn TagList(cx: Scope) -> impl IntoView {
                         each=move || tags.clone().into_iter().enumerate()
                         key=|(i, _)| *i
                         view=move |cx, (_, t): (usize, String)| {
-                            let class = if t == tag_elected {"tag-pill tag-default tag-primary"} else {"tag-pill tag-default"};
                             let t2 = t.to_string();
+                            let same = t2 == tag_elected;
                             view!{cx,
-                                <A class=class href=move || pagination.with(|x| x.clone().unwrap_or_default().set_tag(&t).to_string())>
+                                <a class="tag-pill tag-default" class:tag-primary=same
+                                    href=move || pagination.get().unwrap_or_default().set_tag(if same {""} else {&t}).to_string()>
                                     {t2}
-                                </A>
+                                </a>
                             }
                         }
                     />
@@ -250,11 +248,7 @@ fn TagList(cx: Scope) -> impl IntoView {
         <div class="tag-list">
             <Suspense fallback=move || view! {cx, <p>"Loading Tags"</p> }>
                 <ErrorBoundary fallback=|cx, _| {
-                    view! { cx,
-                        <ul class="error-messages">
-                            <li>"Something went wrong."</li>
-                        </ul>
-                    }
+                    view! { cx, <p class="error-messages text-xs-center">"Something went wrong."</p>}
                 }>
                     {tag_view}
                 </ErrorBoundary>

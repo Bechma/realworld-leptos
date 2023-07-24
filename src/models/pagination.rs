@@ -46,8 +46,14 @@ impl Pagination {
     }
 
     #[inline]
+    pub fn reset_page(mut self) -> Self {
+        self.page = Some(0);
+        self
+    }
+
+    #[inline]
     pub fn next_page(mut self) -> Self {
-        self.page = Some(self.page.unwrap_or_default() + 1);
+        self.page = Some(self.page.unwrap_or_default().saturating_add(1));
         self
     }
 
@@ -72,7 +78,7 @@ impl Default for Pagination {
 impl ToString for Pagination {
     fn to_string(&self) -> String {
         format!(
-            "?tag={}&my_feed={}&page={}&amount={}",
+            "/?tag={}&my_feed={}&page={}&amount={}",
             self.get_tag(),
             self.get_my_feed(),
             self.get_page(),

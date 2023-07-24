@@ -66,7 +66,7 @@ pub fn ArticleMeta(
                 fallback=move |cx| {
                     view! {cx,
                         <Show
-                            when=move || {username.get() == article.with(|x| Some(x.author.username.to_string()))}
+                            when=move || {username.get().unwrap_or_default() == article.with(|x| x.author.username.to_string())}
                             fallback=move |cx| {view!{cx,
                                 <Show when=move || username.with(|x| x.is_some()) fallback=|_| ()>
                                     <ButtonFav username=username article=article />

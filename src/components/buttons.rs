@@ -173,12 +173,10 @@ pub fn ButtonFav(
             fallback=move |cx| view!{cx,
                 <button class="btn btn-sm btn-outline-primary pull-xs-right">
                     <i class="ion-heart"></i>
-                    " "
-                    <span class="counter">"("{fav_count}")"</span>
+                    <span class="counter">" ("{fav_count}")"</span>
                 </button>
             }
         >
-            //<form method="post" action="{{routes.article ~ '/' ~ article.slug}}{% if article.fav %}/unfav{% else %}/fav{% endif %}"
             <ActionForm action=make_fav class="inline pull-xs-right">
                 <input type="hidden" name="slug" value=move || article.with(|x| x.slug.to_string()) />
                 <button type="submit" class="btn btn-sm btn-outline-primary">

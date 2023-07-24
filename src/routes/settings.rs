@@ -57,6 +57,13 @@ fn update_user_validation(
                 .map_err(SettingsUpdateError::ValidationError)?;
         }
     }
+
+    if bio.len() < 10 {
+        return Err(SettingsUpdateError::ValidationError(
+            "bio too short, at least 10 characters".into(),
+        ));
+    }
+
     Ok(user
         .set_email(email)
         .map_err(SettingsUpdateError::ValidationError)?
@@ -94,15 +101,7 @@ pub struct UserGet {
 
 #[component]
 pub fn Settings(cx: Scope, logout: crate::auth::LogoutSignal) -> impl IntoView {
-    let settings_server_action = create_server_action::<SettingsUpdateAction>(cx);
-    let (user, user_set) = create_signal(cx, crate::models::User::default());
-    let error = create_rw_signal(cx, view! {cx, <ul></ul>});
-    spawn_local(async move {
-        let user = settings_get(cx).await;
-        tracing::debug!("user received: {user:?}");
-        user_set.set(user.unwrap_or_default());
-    });
-    tracing::debug!("Settings route");
+    let resource = create_resource(cx, || (), move |_| async move { settings_get(cx).await });
 
     view! { cx,
         <Title text="Settings"/>
@@ -113,49 +112,23 @@ pub fn Settings(cx: Scope, logout: crate::auth::LogoutSignal) -> impl IntoView {
                     <div class="col-md-6 offset-md-3 col-xs-12">
                         <h1 class="text-xs-center">"Your Settings"</h1>
 
-                        {error}
-
-                        <ActionForm action=settings_server_action on:submit=move |ev| {
-                            let Ok(data) = SettingsUpdateAction::from_event(&ev) else {
-                                return ev.prevent_default();
-                            };
-                            if let Err(x) = update_user_validation(crate::models::User::default(), data.image, data.bio, data.email, data.password, data.confirm_password) {
-                                let x = format!("{x:?}");
-                                error.set(view! {cx,
-                                    <ul class="error-messages">
-                                        <li>"Problem while validating: "{x}</li>
-                                    </ul>
-                                });
-                                ev.prevent_default();
-                            }
-                        }>
-                            <fieldset>
-                                <fieldset class="form-group">
-                                    <input name="image" value=move || {user.with(|x| x.image().unwrap_or_default())} class="form-control" type="text"
-                                        placeholder="URL of profile picture" />
-                                </fieldset>
-                                <fieldset class="form-group">
-                                    <input disabled value=move || {user.with(|x| x.username())} class="form-control form-control-lg" type="text"
-                                        placeholder="Your Name" />
-                                </fieldset>
-                                <fieldset class="form-group">
-                                    <textarea name="bio" class="form-control form-control-lg" rows="8"
-                                        placeholder="Short bio about you" prop:value=move || user.with(|x| x.bio().unwrap_or_default())>
-                                    </textarea>
-                                </fieldset>
-                                <fieldset class="form-group">
-                                    <input name="email" value={move || user.with(|x| x.email())} class="form-control form-control-lg" type="text"
-                                        placeholder="Email" />
-                                </fieldset>
-                                <fieldset class="form-group">
-                                    <input name="password" class="form-control form-control-lg" type="password"
-                                        placeholder="New Password" />
-                                    <input name="confirm_password" class="form-control form-control-lg" type="password"
-                                        placeholder="Confirm New Password" />
-                                </fieldset>
-                                <button class="btn btn-lg btn-primary pull-xs-right" type="submit">"Update Settings"</button>
-                            </fieldset>
-                        </ActionForm>
+                        <Suspense
+                            fallback=move || view!{cx, <p>"Loading user settings"</p>}
+                        >
+                            <ErrorBoundary
+                                fallback=|cx, _| {
+                                    view!{cx, <p>"There was a problem while fetching settings, try again later"</p>}
+                                }
+                            >
+                                {move || {
+                                    resource.with(cx, move |x| {
+                                        x.clone().map(move |user| {
+                                            view!{cx, <SettingsViewForm user />}
+                                        })
+                                    })
+                                }}
+                            </ErrorBoundary>
+                        </Suspense>
                         <hr />
                         <ActionForm action=logout>
                             <button type="submit" class="btn btn-outline-danger">"Or click here to logout."</button>
@@ -164,5 +137,80 @@ pub fn Settings(cx: Scope, logout: crate::auth::LogoutSignal) -> impl IntoView {
                 </div>
             </div>
         </div>
+    }
+}
+
+#[component]
+fn SettingsViewForm(cx: Scope, user: crate::models::User) -> impl IntoView {
+    let settings_server_action = create_server_action::<SettingsUpdateAction>(cx);
+    let result = settings_server_action.value();
+    let error = move || {
+        result.with(|x| {
+            x.as_ref()
+                .map(|y| y.is_err() || !matches!(y, Ok(SettingsUpdateError::Successful)))
+                .unwrap_or(true)
+        })
+    };
+
+    view! {cx,
+        <p class="text-xs-center"
+            class:text-success=move || !error()
+            class:error-messages=error
+        >
+            <strong>
+                {move || result.with(|x| {
+                    match x {
+                        Some(Ok(SettingsUpdateError::Successful)) => {
+                            "Successfully update settings".to_string()
+                        },
+                        Some(Ok(SettingsUpdateError::ValidationError(x))) => {
+                            format!("Problem while validating: {x:?}")
+                        },
+                        Some(Ok(SettingsUpdateError::PasswordsNotMatch)) => {
+                            "Passwords don't match".to_string()
+                        },
+                        Some(Err(x)) => format!("{x:?}"),
+                        None => String::new(),
+                    }
+                })}
+            </strong>
+        </p>
+
+        <ActionForm action=settings_server_action on:submit=move |ev| {
+            let Ok(data) = SettingsUpdateAction::from_event(&ev) else {
+                return ev.prevent_default();
+            };
+            if let Err(x) = update_user_validation(crate::models::User::default(), data.image, data.bio, data.email, data.password, data.confirm_password) {
+                result.set(Some(Ok(x)));
+                ev.prevent_default();
+            }
+        }>
+        <fieldset>
+            <fieldset class="form-group">
+                <input name="image" value=user.image() class="form-control" type="text"
+                    placeholder="URL of profile picture" />
+            </fieldset>
+            <fieldset class="form-group">
+                <input disabled value=user.username() class="form-control form-control-lg" type="text"
+                    placeholder="Your Name" />
+            </fieldset>
+            <fieldset class="form-group">
+                <textarea name="bio" class="form-control form-control-lg" rows="8"
+                    placeholder="Short bio about you" prop:value=user.bio().unwrap_or_default()>
+                </textarea>
+            </fieldset>
+            <fieldset class="form-group">
+                <input name="email" value=user.email() class="form-control form-control-lg" type="text"
+                    placeholder="Email" />
+            </fieldset>
+            <fieldset class="form-group">
+                <input name="password" class="form-control form-control-lg" type="password"
+                    placeholder="New Password" />
+                <input name="confirm_password" class="form-control form-control-lg" type="password"
+                    placeholder="Confirm New Password" />
+            </fieldset>
+            <button class="btn btn-lg btn-primary pull-xs-right" type="submit">"Update Settings"</button>
+            </fieldset>
+        </ActionForm>
     }
 }
