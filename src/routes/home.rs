@@ -1,7 +1,7 @@
 use crate::components::ArticlePreview;
 use leptos::*;
 use leptos_meta::*;
-use wasm_bindgen::JsCast;
+use leptos_router::*;
 
 #[server(HomeAction, "/api", "GetJson")]
 async fn home_articles(
@@ -37,40 +37,55 @@ async fn get_tags() -> Result<Vec<String>, ServerFnError> {
 }
 
 type ArticlesType =
-    Resource<(String, bool, u32, u32), Result<Vec<crate::models::ArticlePreview>, ServerFnError>>;
+    Resource<crate::models::Pagination, Result<Vec<crate::models::ArticlePreview>, ServerFnError>>;
 
 /// Renders the home page of your application.
 #[component]
 pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
-    let tag = create_rw_signal(cx, String::new());
-    let my_feed = create_rw_signal(cx, false);
-    let page = create_rw_signal(cx, 0u32);
-    let amount = create_rw_signal(cx, 10u32);
+    let pagination = use_query::<crate::models::Pagination>(cx);
 
     let articles: ArticlesType = create_resource(
         cx,
-        move || (tag.get(), my_feed.get(), page.get(), amount.get()),
-        move |(tag, my_feed, page, amount)| async move {
-            home_articles(cx, page, amount, tag, my_feed).await
+        move || pagination.get().unwrap_or_default(),
+        move |pagination| async move {
+            tracing::debug!("making another request: {pagination:?}");
+            home_articles(
+                cx,
+                pagination.get_page(),
+                pagination.get_amount(),
+                pagination.get_tag().to_string(),
+                pagination.get_my_feed(),
+            )
+            .await
         },
     );
 
-    let class_my_feed = move || {
+    let your_feed_href = move || {
+        if username.with(|x| x.is_some())
+            && !pagination.with(|x| x.as_ref().map(|x| x.get_my_feed()).unwrap_or_default())
+        {
+            pagination
+                .get()
+                .unwrap_or_default()
+                .set_my_feed(true)
+                .to_string()
+        } else {
+            "".into()
+        }
+    };
+    let your_feed_class = move || {
         tracing::debug!("set class_my_feed");
         format!(
             "nav-link {}",
             if username.with(|x| x.is_none()) {
-                my_feed.set(false);
                 "disabled"
-            } else if my_feed.get() {
+            } else if pagination.with(|x| x.as_ref().map(|x| x.get_my_feed()).unwrap_or_default()) {
                 "active"
             } else {
                 ""
             }
         )
     };
-    let class_global_feed =
-        move || format!("nav-link {}", if !my_feed.get() { "active" } else { "" });
 
     view! { cx,
         <Title text="Home"/>
@@ -89,26 +104,23 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                         <div class="feed-toggle">
                             <ul class="nav nav-pills outline-active">
                                 <li class="nav-item">
-                                    <a class={class_my_feed} href="" on:click=move |_| {if !my_feed.get() && username.with(|x| x.is_some()) {my_feed.set(true)}}>"Your Feed"</a>
+                                    <a href=your_feed_href class=your_feed_class>
+                                        "Your Feed"
+                                    </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class={class_global_feed} href="" on:click=move |_| if my_feed.get() {my_feed.set(false)}>"Global Feed"</a>
+                                    <a class="nav-link"
+                                    class:active=move || !pagination.with(|x| x.as_ref().map(|x| x.get_my_feed()).unwrap_or_default())
+                                    href=move || pagination.get().unwrap_or_default().set_my_feed(false).to_string()>
+                                        "Global Feed"
+                                    </a>
                                 </li>
                                 <li class="nav-item pull-xs-right">
                                     <div style="display: inline-block;">
                                         "Articles to display | "
-                                        <input style="width: 4em" type="number" value=amount.get_untracked() min="1"
-                                            on:input=move |ev| {
-                                                amount.set(
-                                                    ev.target()
-                                                        .expect("amount signal: Event doesn't have a target")
-                                                        .dyn_into::<web_sys::HtmlInputElement>()
-                                                        .expect("amount signal: it should be an input element")
-                                                        .value()
-                                                        .parse::<u32>()
-                                                        .expect("amount signal: cannot convert the pages input to a number"),
-                                                );
-                                            }  />
+                                        <a href=move || pagination.get().unwrap_or_default().set_amount(1).to_string() class="btn btn-primary">"1"</a>
+                                        <a href=move || pagination.get().unwrap_or_default().set_amount(20).to_string() class="btn btn-primary">"20"</a>
+                                        <a href=move || pagination.get().unwrap_or_default().set_amount(50).to_string() class="btn btn-primary">"50"</a>
                                     </div>
                                 </li>
                             </ul>
@@ -120,16 +132,17 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                     <div class="col-md-3">
                         <div class="sidebar">
                             <h4>"Popular Tags"</h4>
-                            <TagList tag=tag />
+                            <TagList />
                         </div>
                     </div>
+
                     <ul class="pagination">
                         <Show
-                            when=move || {page.get() > 0}
+                            when=move || {pagination.with(|x| x.as_ref().map(|y| y.get_page()).unwrap_or_default()) > 0}
                             fallback=|_| ()
                         >
                             <li class="page-item">
-                                <a class="btn btn-primary" on:click=move |_| page.update(|x| *x -= 1)>
+                                <a class="btn btn-primary" href=move || pagination.get().unwrap_or_default().previous_page().to_string()>
                                     "<< Previous page"
                                 </a>
                             </li>
@@ -137,11 +150,14 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                         <Suspense fallback=|| ()>
                             <Show
                                 // TODO: fix this dummy logic
-                                when=move || {articles.with(cx, |x| x.as_ref().map(|y| y.len()).unwrap_or_default()).unwrap_or_default() >= amount.get() as usize}
+                                when=move || {
+                                    articles.with(cx, |x| x.as_ref().map(|y| y.len()).unwrap_or_default()).unwrap_or_default()
+                                    >=
+                                    pagination.with(|x| x.as_ref().map(|y| y.get_page()).unwrap_or_default()) as usize}
                                 fallback=|_| ()
                             >
                                 <li class="page-item">
-                                    <a class="btn btn-primary" on:click=move |_| page.update(|x| *x += 1)>
+                                    <a class="btn btn-primary" href=move || pagination.get().unwrap_or_default().next_page().to_string()>
                                         "Next page >>"
                                     </a>
                                 </li>
@@ -196,13 +212,19 @@ fn ArticlePreviewList(
 }
 
 #[component]
-fn TagList(cx: Scope, tag: RwSignal<String>) -> impl IntoView {
+fn TagList(cx: Scope) -> impl IntoView {
+    let pagination = use_query::<crate::models::Pagination>(cx);
     let tag_list = create_resource(cx, || (), |_| async { get_tags().await });
 
     // TODO: Wonder if it's possible to reduce reduce the 2x clone
     // TODO: Every click on any tag will trigger the whole For... I just want to re-render for 1 element
     let tag_view = move || {
-        let tag_elected = tag.get();
+        let tag_elected = pagination.with(|x| {
+            x.as_ref()
+                .map(|y| y.get_tag())
+                .unwrap_or_default()
+                .to_string()
+        });
         tag_list.with(cx, move |ts| {
             ts.clone().map(move |tags| {
                 view! { cx,
@@ -212,16 +234,11 @@ fn TagList(cx: Scope, tag: RwSignal<String>) -> impl IntoView {
                         view=move |cx, (_, t): (usize, String)| {
                             let class = if t == tag_elected {"tag-pill tag-default tag-primary"} else {"tag-pill tag-default"};
                             let t2 = t.to_string();
-                            view!{cx, <a href="" class=class  on:click=move |_| {
-                                tag.update(|current_tag| {
-                                    tracing::debug!("current_tag={current_tag},new_tag={t}");
-                                    *current_tag = if current_tag == &t {
-                                        String::new()
-                                    } else {
-                                        t.to_string()
-                                    }
-                                })
-                            }>{t2}</a>}
+                            view!{cx,
+                                <A class=class href=move || pagination.with(|x| x.clone().unwrap_or_default().set_tag(&t).to_string())>
+                                    {t2}
+                                </A>
+                            }
                         }
                     />
                 }

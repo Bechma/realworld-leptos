@@ -47,6 +47,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     <Route path="/signup" view=move |cx| view! { cx, <Signup username=username/> }/>
                     <Route path="/settings" view=move |cx| view! { cx, <Settings logout=logout /> }/>
                     <Route path="/editor/:slug?" view=|cx| view! { cx, <Editor/> }/>
+                    // <Route path="/profile/:user" view=|cx| view! { cx, <Profile/> }/>
                 </Routes>
             </main>
             <footer>
