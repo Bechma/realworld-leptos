@@ -58,17 +58,12 @@ fn update_user_validation(
         }
     }
 
-    if bio.len() < 10 {
-        return Err(SettingsUpdateError::ValidationError(
-            "bio too short, at least 10 characters".into(),
-        ));
-    }
-
-    Ok(user
-        .set_email(email)
+    user.set_email(email)
         .map_err(SettingsUpdateError::ValidationError)?
         .set_bio(bio)
-        .set_image(image))
+        .map_err(SettingsUpdateError::ValidationError)?
+        .set_image(image)
+        .map_err(SettingsUpdateError::ValidationError)
 }
 
 #[cfg(feature = "ssr")]

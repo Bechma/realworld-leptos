@@ -3,11 +3,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 pub struct User {
     username: String,
-    #[serde(skip_deserializing)]
-    password: String,
+    #[allow(dead_code)]
+    #[serde(skip_deserializing, skip_serializing)]
+    password: Option<String>,
     email: String,
     bio: Option<String>,
     image: Option<String>,
+    change_passwd: Option<String>,
 }
 
 #[cfg(feature = "ssr")]
@@ -35,7 +37,7 @@ impl User {
         if password.len() < 4 {
             return Err("You need to provide a stronger password".into());
         }
-        self.password = password;
+        self.change_passwd = Some(password);
         Ok(self)
     }
 
@@ -71,23 +73,40 @@ impl User {
         Ok(self)
     }
 
-    #[inline]
-    pub fn set_bio(mut self, bio: String) -> Self {
-        self.bio = Some(bio);
-        self
+    pub fn set_bio(mut self, bio: String) -> Result<Self, String> {
+        static BIO_MIN: usize = 10;
+        if bio.is_empty() {
+            self.bio = None;
+        } else if bio.len() < BIO_MIN {
+            return Err("bio too short, at least 10 characters".into());
+        } else {
+            self.bio = Some(bio);
+        }
+        Ok(self)
     }
 
     #[inline]
-    pub fn set_image(mut self, image: String) -> Self {
-        self.image = Some(image);
-        self
+    pub fn set_image(mut self, image: String) -> Result<Self, String> {
+        if image.is_empty() {
+            self.image = None;
+            // TODO: This is incorrect! changeme in the future for a proper validation
+        } else if !image.starts_with("http") {
+            return Err("Invalid image!".into());
+        } else {
+            self.image = Some(image);
+        }
+        Ok(self)
     }
 
     #[cfg(feature = "ssr")]
     pub async fn get(username: String) -> Result<Self, sqlx::Error> {
-        sqlx::query_as!(Self, "SELECT * FROM users WHERE username=$1", username)
-            .fetch_one(crate::database::get_db())
-            .await
+        sqlx::query_as!(
+            Self,
+            "SELECT *, NULL as change_passwd FROM users WHERE username=$1",
+            username
+        )
+        .fetch_one(crate::database::get_db())
+        .await
     }
 
     #[cfg(feature = "ssr")]
@@ -110,14 +129,14 @@ UPDATE Users SET
     image=$2,
     bio=$3,
     email=$4,
-    password=CASE WHEN $5 IS TRUE THEN crypt($6, gen_salt('bf')) ELSE password END
+    password=CASE WHEN $5 THEN crypt($6, gen_salt('bf')) ELSE password END
 WHERE username=$1",
             self.username,
             self.image,
             self.bio,
             self.email,
-            !self.password.is_empty(),
-            self.password
+            self.change_passwd.is_some(),
+            self.change_passwd,
         )
         .execute(crate::database::get_db())
         .await

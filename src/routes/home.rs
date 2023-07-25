@@ -1,4 +1,4 @@
-use crate::components::ArticlePreview;
+use crate::components::ArticlePreviewList;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
@@ -36,15 +36,12 @@ async fn get_tags() -> Result<Vec<String>, ServerFnError> {
         })
 }
 
-type ArticlesType =
-    Resource<crate::models::Pagination, Result<Vec<crate::models::ArticlePreview>, ServerFnError>>;
-
 /// Renders the home page of your application.
 #[component]
 pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
     let pagination = use_query::<crate::models::Pagination>(cx);
 
-    let articles: ArticlesType = create_resource(
+    let articles = create_resource(
         cx,
         move || pagination.get().unwrap_or_default(),
         move |pagination| async move {
@@ -169,43 +166,6 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                 </div>
             </div>
         </div>
-    }
-}
-
-#[component]
-fn ArticlePreviewList(
-    cx: Scope,
-    username: RwSignal<Option<String>>,
-    articles: ArticlesType,
-) -> impl IntoView {
-    // TODO: When the user logouts in the main screen, there's a request to articles... WHY?
-    let articles_view = move || {
-        articles.with(cx, move |x| {
-            x.clone().map(move |res| {
-                view! {cx,
-                    <For
-                        each=move || res.clone().into_iter().enumerate()
-                        key=|(i, _)| *i
-                        view=move |cx, (_, article): (usize, crate::models::ArticlePreview)| {
-                            let article = create_rw_signal(cx, article);
-                            view! {cx,
-                                <ArticlePreview article=article username=username />
-                            }
-                        }
-                    />
-                }
-            })
-        })
-    };
-
-    view! {cx,
-        <Suspense fallback=move || view! {cx, <p>"Loading Articles"</p> }>
-            <ErrorBoundary fallback=|cx, _| {
-                view! { cx, <p class="error-messages text-xs-center">"Something went wrong."</p>}
-            }>
-                {articles_view}
-            </ErrorBoundary>
-        </Suspense>
     }
 }
 

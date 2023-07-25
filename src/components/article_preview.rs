@@ -5,8 +5,48 @@ use super::buttons::{ButtonFav, ButtonFollow};
 
 pub type ArticleSignal = RwSignal<crate::models::ArticlePreview>;
 
+type ArticlesType<S, T = Result<Vec<crate::models::ArticlePreview>, ServerFnError>> =
+    Resource<S, T>;
+
 #[component]
-pub fn ArticlePreview(
+pub fn ArticlePreviewList<S: 'static + std::clone::Clone>(
+    cx: Scope,
+    username: crate::auth::UsernameSignal,
+    articles: ArticlesType<S>,
+) -> impl IntoView {
+    // TODO: When the user logouts in the main screen, there's a request to articles... WHY?
+    let articles_view = move || {
+        articles.with(cx, move |x| {
+            x.clone().map(move |res| {
+                view! {cx,
+                    <For
+                        each=move || res.clone().into_iter().enumerate()
+                        key=|(i, _)| *i
+                        view=move |cx, (_, article): (usize, crate::models::ArticlePreview)| {
+                            let article = create_rw_signal(cx, article);
+                            view! {cx,
+                                <ArticlePreview article=article username=username />
+                            }
+                        }
+                    />
+                }
+            })
+        })
+    };
+
+    view! {cx,
+        <Suspense fallback=move || view! {cx, <p>"Loading Articles"</p> }>
+            <ErrorBoundary fallback=|cx, _| {
+                view! { cx, <p class="error-messages text-xs-center">"Something went wrong."</p>}
+            }>
+                {articles_view}
+            </ErrorBoundary>
+        </Suspense>
+    }
+}
+
+#[component]
+fn ArticlePreview(
     cx: Scope,
     username: crate::auth::UsernameSignal,
     article: ArticleSignal,
@@ -40,7 +80,7 @@ pub fn ArticlePreview(
 }
 
 #[component]
-pub fn ArticleMeta(
+fn ArticleMeta(
     cx: Scope,
     username: crate::auth::UsernameSignal,
     article: ArticleSignal,
@@ -67,10 +107,13 @@ pub fn ArticleMeta(
                     view! {cx,
                         <Show
                             when=move || {username.get().unwrap_or_default() == article.with(|x| x.author.username.to_string())}
-                            fallback=move |cx| {view!{cx,
+                            fallback=move |cx| {
+                                let following = article.with(|x| x.author.following);
+                                let (author, _) = create_signal(cx, article.with(|x| x.author.username.to_string()));
+                                view!{cx,
                                 <Show when=move || username.with(|x| x.is_some()) fallback=|_| ()>
                                     <ButtonFav username=username article=article />
-                                    <ButtonFollow username=username article=article />
+                                    <ButtonFollow logged_user=username author following />
                                 </Show>
                             }}
                         >
