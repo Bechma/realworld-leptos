@@ -48,8 +48,9 @@ async fn toggle_follow(current: String, other: String) -> Result<bool, sqlx::Err
 #[component]
 pub fn ButtonFollow(
     cx: Scope,
-    username: crate::auth::UsernameSignal,
-    article: super::article_preview::ArticleSignal,
+    logged_user: crate::auth::UsernameSignal,
+    author: ReadSignal<String>,
+    following: bool,
 ) -> impl IntoView {
     let follow = create_server_action::<FollowAction>(cx);
     let result_call = follow.value();
@@ -59,29 +60,29 @@ pub fn ButtonFollow(
                 Ok(x) => x,
                 Err(err) => {
                     tracing::error!("problem while following {err:?}");
-                    article.with(|x| x.author.following)
+                    following
                 }
             }
         } else {
-            article.with(|x| x.author.following)
+            following
         }
     };
 
     view! {cx,
         <Show
-            when=move || username.get() != article.with(|x| Some(x.author.username.to_string()))
+            when=move || logged_user.get().unwrap_or_default() != author.get()
             fallback=|_| ()
         >
-            //<form method="post" action="{{routes.profile ~ '/' ~ user}}{% if following %}/unfollow{% else %}/follow{% endif %}"
             <ActionForm action=follow class="inline pull-xs-right">
+                <input type="hidden" name="other_user" value=move || author.get() />
                 <button type="submit" class="btn btn-sm btn-outline-secondary">
                     <Show
                         when=follow_cond
-                        fallback=|cx| view!{cx, <i class="ion-plus-round"></i>" Follow"}
+                        fallback=|cx| view!{cx, <i class="ion-plus-round"></i>" Follow "}
                     >
-                        <i class="ion-close-round"></i>" Unfollow"
+                        <i class="ion-close-round"></i>" Unfollow "
                     </Show>
-                    {article.with(|x| x.author.username.to_string())}
+                    {move || author.get()}
                 </button>
             </ActionForm>
         </Show>

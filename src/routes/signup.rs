@@ -17,7 +17,9 @@ pub fn Signup(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
                 Ok(SignupResponse::CreateUserError(x)) => x,
                 Ok(SignupResponse::Success) => {
                     username.set(crate::auth::get_username(cx));
-                    use_navigate(cx)("/", NavigateOptions::default()).unwrap();
+                    request_animation_frame(move || {
+                        use_navigate(cx)("/", NavigateOptions::default()).unwrap();
+                    });
                     "".into()
                 }
                 Err(_) => "There was a problem, try again later".into(),
