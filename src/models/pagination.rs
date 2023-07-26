@@ -28,7 +28,7 @@ impl Pagination {
     }
 
     #[inline]
-    pub fn set_tag<T: ToString>(mut self, tag: T) -> Self {
+    pub fn set_tag<T: ToString + ?Sized>(mut self, tag: &T) -> Self {
         self.tag = Some(tag.to_string());
         self
     }
@@ -67,7 +67,7 @@ impl Pagination {
 impl Default for Pagination {
     fn default() -> Self {
         Self {
-            tag: Some("".into()),
+            tag: Some(String::new()),
             my_feed: Some(false),
             page: Some(0),
             amount: Some(10),

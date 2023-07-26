@@ -51,11 +51,10 @@ fn update_user_validation(
     if !password.is_empty() {
         if password != confirm_password {
             return Err(SettingsUpdateError::PasswordsNotMatch);
-        } else {
-            user = user
-                .set_password(password)
-                .map_err(SettingsUpdateError::ValidationError)?;
         }
+        user = user
+            .set_password(password)
+            .map_err(SettingsUpdateError::ValidationError)?;
     }
 
     user.set_email(email)

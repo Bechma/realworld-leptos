@@ -75,7 +75,7 @@ LIMIT $1 OFFSET $2",
                 .tag_list
                 .unwrap_or_default()
                 .split(' ')
-                .map(|x| x.to_string())
+                .map(ToString::to_string)
                 .collect::<Vec<String>>(),
         })
         .fetch_all(crate::database::get_db())
@@ -123,7 +123,7 @@ WHERE
             favorites_count: x.favorites_count,
             tags: x
                 .tag_list
-                .map(|x| x.split(' ').map(|x| x.to_string()).collect::<Vec<_>>())
+                .map(|x| x.split(' ').map(ToString::to_string).collect::<Vec<_>>())
                 .unwrap_or_default(),
             author: UserPreview {
                 username: x.username,

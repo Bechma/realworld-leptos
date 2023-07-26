@@ -170,7 +170,7 @@ pub fn ButtonFav(
 
     view! {cx,
         <Show
-            when=move || username.with(|x| x.is_some())
+            when=move || username.with(Option::is_some)
             fallback=move |cx| view!{cx,
                 <button class="btn btn-sm btn-outline-primary pull-xs-right">
                     <i class="ion-heart"></i>

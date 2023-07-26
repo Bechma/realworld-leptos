@@ -11,7 +11,7 @@ pub mod setup;
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn hydrate() {
-    use app::*;
+    use app::App;
     use leptos::*;
 
     tracing_wasm::set_as_global_default();

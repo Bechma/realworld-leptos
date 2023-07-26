@@ -111,7 +111,7 @@ fn ArticleMeta(
                                 let following = article.with(|x| x.author.following);
                                 let (author, _) = create_signal(cx, article.with(|x| x.author.username.to_string()));
                                 view!{cx,
-                                <Show when=move || username.with(|x| x.is_some()) fallback=|_| ()>
+                                <Show when=move || username.with(Option::is_some) fallback=|_| ()>
                                     <ButtonFav username=username article=article />
                                     <ButtonFollow logged_user=username author following />
                                 </Show>
