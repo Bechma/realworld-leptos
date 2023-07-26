@@ -1,4 +1,4 @@
-use crate::app::*;
+use crate::app::App;
 use leptos::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 

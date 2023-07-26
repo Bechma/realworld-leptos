@@ -17,7 +17,7 @@ pub fn Login(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
                     Ok(LoginMessages::Successful) => {
                         username.set(crate::auth::get_username(cx));
                         request_animation_frame(move || {
-                            use_navigate(cx)("/", NavigateOptions::default()).unwrap()
+                            use_navigate(cx)("/", NavigateOptions::default()).unwrap();
                         });
                         ""
                     }

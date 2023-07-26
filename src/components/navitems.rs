@@ -31,9 +31,9 @@ pub(crate) fn NavItems(
                         let path = path.get_untracked();
                         tracing::debug!("Logout request_animation_frame path: {path}");
                         if path.starts_with("/settings") || path.starts_with("/editor") {
-                            use_navigate(cx)("/login", NavigateOptions::default()).unwrap()
+                            use_navigate(cx)("/login", NavigateOptions::default()).unwrap();
                         }
-                    })
+                    });
                 }
                 Err(err) => tracing::error!("Problem during logout {err:?}"),
             }

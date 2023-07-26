@@ -62,10 +62,10 @@ async fn redirect<B>(req: Request<B>, next: axum::middleware::Next<B>) -> Respon
 }
 
 pub(crate) fn decode_token(
-    token: String,
+    token: &str,
 ) -> Result<jsonwebtoken::TokenData<TokenClaims>, jsonwebtoken::errors::Error> {
     decode::<TokenClaims>(
-        &token,
+        token,
         &DecodingKey::from_secret(JWT_SECRET),
         &Validation::default(),
     )
@@ -78,7 +78,7 @@ pub(crate) fn get_username_from_headers(headers: &axum::http::HeaderMap) -> Opti
             .unwrap()
             .split("; ")
             .find(|&x| x.starts_with(super::AUTH_COOKIE))
-            .and_then(|x| x.split('=').last().map(|x| x.to_string()))
+            .and_then(|x| x.split('=').last())
             .and_then(|x| decode_token(x).map(|jwt| jwt.claims.sub).ok())
     })
 }

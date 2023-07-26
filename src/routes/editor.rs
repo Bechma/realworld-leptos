@@ -150,7 +150,6 @@ pub fn Editor(cx: Scope) -> impl IntoView {
 
     let params = use_params_map(cx);
     let slug = params.get().get("slug").cloned().unwrap_or_default();
-    let navigate = use_navigate(cx);
 
     create_effect(cx, move |_| {
         if let Some(msg) = result_of_call.get() {
@@ -166,7 +165,10 @@ pub fn Editor(cx: Scope) -> impl IntoView {
                     </ul>
                 }),
                 Ok(EditorResponse::Success(x)) => {
-                    navigate(&format!("/article/{x}"), NavigateOptions::default()).unwrap()
+                    request_animation_frame(move || {
+                        use_navigate(cx)(&format!("/article/{x}"), NavigateOptions::default())
+                            .unwrap();
+                    });
                 }
                 Err(x) => error.set(view! {cx,
                     <ul class="error-messages">

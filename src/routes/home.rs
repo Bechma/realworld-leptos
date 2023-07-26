@@ -58,8 +58,12 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
     );
 
     let your_feed_href = move || {
-        if username.with(|x| x.is_some())
-            && !pagination.with(|x| x.as_ref().map(|x| x.get_my_feed()).unwrap_or_default())
+        if username.with(Option::is_some)
+            && !pagination.with(|x| {
+                x.as_ref()
+                    .map(crate::models::Pagination::get_my_feed)
+                    .unwrap_or_default()
+            })
         {
             pagination
                 .get()
@@ -68,16 +72,20 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                 .set_my_feed(true)
                 .to_string()
         } else {
-            "".into()
+            String::new()
         }
     };
     let your_feed_class = move || {
         tracing::debug!("set class_my_feed");
         format!(
             "nav-link {}",
-            if username.with(|x| x.is_none()) {
+            if username.with(Option::is_none) {
                 "disabled"
-            } else if pagination.with(|x| x.as_ref().map(|x| x.get_my_feed()).unwrap_or_default()) {
+            } else if pagination.with(|x| x
+                .as_ref()
+                .map(crate::models::Pagination::get_my_feed)
+                .unwrap_or_default())
+            {
                 "active"
             } else {
                 ""
@@ -108,7 +116,7 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link"
-                                    class:active=move || !pagination.with(|x| x.as_ref().map(|x| x.get_my_feed()).unwrap_or_default())
+                                    class:active=move || !pagination.with(|x| x.as_ref().map(crate::models::Pagination::get_my_feed).unwrap_or_default())
                                     href=move || pagination.get().unwrap_or_default().reset_page().set_my_feed(false).to_string()>
                                         "Global Feed"
                                     </a>
@@ -136,7 +144,7 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
 
                     <ul class="pagination">
                         <Show
-                            when=move || {pagination.with(|x| x.as_ref().map(|y| y.get_page()).unwrap_or_default()) > 0}
+                            when=move || {pagination.with(|x| x.as_ref().map(crate::models::Pagination::get_page).unwrap_or_default()) > 0}
                             fallback=|_| ()
                         >
                             <li class="page-item">
@@ -149,9 +157,9 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                             <Show
                                 // TODO: fix this dummy logic
                                 when=move || {
-                                    let n_articles = articles.with(cx, |x| x.as_ref().map(|y| y.len()).unwrap_or_default()).unwrap_or_default();
+                                    let n_articles = articles.with(cx, |x| x.as_ref().map(Vec::len).unwrap_or_default()).unwrap_or_default();
                                     n_articles > 0 && n_articles >=
-                                    pagination.with(|x| x.as_ref().map(|y| y.get_amount()).unwrap_or_default()) as usize
+                                    pagination.with(|x| x.as_ref().map(crate::models::Pagination::get_amount).unwrap_or_default()) as usize
                                 }
                                 fallback=|_| ()
                             >
@@ -178,7 +186,7 @@ fn TagList(cx: Scope) -> impl IntoView {
     let tag_view = move || {
         let tag_elected = pagination.with(|x| {
             x.as_ref()
-                .map(|y| y.get_tag())
+                .map(crate::models::Pagination::get_tag)
                 .unwrap_or_default()
                 .to_string()
         });

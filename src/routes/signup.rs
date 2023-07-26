@@ -20,7 +20,7 @@ pub fn Signup(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
                     request_animation_frame(move || {
                         use_navigate(cx)("/", NavigateOptions::default()).unwrap();
                     });
-                    "".into()
+                    String::new()
                 }
                 Err(_) => "There was a problem, try again later".into(),
             })
