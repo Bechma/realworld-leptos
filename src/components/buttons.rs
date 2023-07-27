@@ -3,8 +3,8 @@ use leptos_router::*;
 
 #[server(FollowAction, "/api")]
 #[tracing::instrument]
-pub async fn follow_action(cx: Scope, other_user: String) -> Result<bool, ServerFnError> {
-    let Some(username) = crate::auth::get_username(cx) else {
+pub async fn follow_action(other_user: String) -> Result<bool, ServerFnError> {
+    let Some(username) = crate::auth::get_username() else {
         return Err(ServerFnError::ServerError("You need to be authenticated".into()));
     };
     toggle_follow(username, other_user).await.map_err(|x| {
@@ -47,12 +47,11 @@ async fn toggle_follow(current: String, other: String) -> Result<bool, sqlx::Err
 
 #[component]
 pub fn ButtonFollow(
-    cx: Scope,
     logged_user: crate::auth::UsernameSignal,
     author: ReadSignal<String>,
     following: bool,
 ) -> impl IntoView {
-    let follow = create_server_action::<FollowAction>(cx);
+    let follow = create_server_action::<FollowAction>();
     let result_call = follow.value();
     let follow_cond = move || {
         if let Some(x) = result_call.get() {
@@ -68,17 +67,17 @@ pub fn ButtonFollow(
         }
     };
 
-    view! {cx,
+    view! {
         <Show
             when=move || logged_user.get().unwrap_or_default() != author.get()
-            fallback=|_| ()
+            fallback=|| ()
         >
             <ActionForm action=follow class="inline pull-xs-right">
                 <input type="hidden" name="other_user" value=move || author.get() />
                 <button type="submit" class="btn btn-sm btn-outline-secondary">
                     <Show
                         when=follow_cond
-                        fallback=|cx| view!{cx, <i class="ion-plus-round"></i>" Follow "}
+                        fallback=|| view!{<i class="ion-plus-round"></i>" Follow "}
                     >
                         <i class="ion-close-round"></i>" Unfollow "
                     </Show>
@@ -91,8 +90,8 @@ pub fn ButtonFollow(
 
 #[server(FavAction, "/api")]
 #[tracing::instrument]
-pub async fn fav_action(cx: Scope, slug: String) -> Result<bool, ServerFnError> {
-    let Some(username) = crate::auth::get_username(cx) else {
+pub async fn fav_action(slug: String) -> Result<bool, ServerFnError> {
+    let Some(username) = crate::auth::get_username() else {
         return Err(ServerFnError::ServerError("You need to be authenticated".into()));
     };
     toggle_fav(slug, username).await.map_err(|x| {
@@ -135,11 +134,10 @@ async fn toggle_fav(slug: String, username: String) -> Result<bool, sqlx::Error>
 
 #[component]
 pub fn ButtonFav(
-    cx: Scope,
     username: crate::auth::UsernameSignal,
     article: super::article_preview::ArticleSignal,
 ) -> impl IntoView {
-    let make_fav = create_server_action::<FavAction>(cx);
+    let make_fav = create_server_action::<FavAction>();
     let result_make_fav = make_fav.value();
     let fav_count = move || {
         if let Some(x) = result_make_fav.get() {
@@ -168,10 +166,10 @@ pub fn ButtonFav(
         article.with(|x| x.favorites_count.unwrap_or_default())
     };
 
-    view! {cx,
+    view! {
         <Show
             when=move || username.with(Option::is_some)
-            fallback=move |cx| view!{cx,
+            fallback=move || view!{
                 <button class="btn btn-sm btn-outline-primary pull-xs-right">
                     <i class="ion-heart"></i>
                     <span class="counter">" ("{fav_count}")"</span>
@@ -183,7 +181,7 @@ pub fn ButtonFav(
                 <button type="submit" class="btn btn-sm btn-outline-primary">
                 <Show
                     when=move || article.with(|x| x.fav)
-                    fallback=move |cx| {view!{cx, <i class="ion-heart"></i>" Fav "}}
+                    fallback=move || {view!{<i class="ion-heart"></i>" Fav "}}
                 >
                     <i class="ion-heart-broken"></i>" Unfav "
                 </Show>

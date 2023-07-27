@@ -84,8 +84,8 @@ pub(crate) fn get_username_from_headers(headers: &axum::http::HeaderMap) -> Opti
 }
 
 #[tracing::instrument]
-pub fn get_username(cx: leptos::Scope) -> Option<String> {
-    if let Some(req) = leptos::use_context::<leptos_axum::RequestParts>(cx) {
+pub fn get_username() -> Option<String> {
+    if let Some(req) = leptos::use_context::<leptos_axum::RequestParts>() {
         crate::auth::get_username_from_headers(&req.headers)
     } else {
         None
@@ -93,8 +93,8 @@ pub fn get_username(cx: leptos::Scope) -> Option<String> {
 }
 
 #[tracing::instrument]
-pub async fn set_username(cx: leptos::Scope, username: String) -> bool {
-    if let Some(res) = leptos::use_context::<leptos_axum::ResponseOptions>(cx) {
+pub async fn set_username(username: String) -> bool {
+    if let Some(res) = leptos::use_context::<leptos_axum::ResponseOptions>() {
         let claims = crate::auth::TokenClaims {
             sub: username,
             exp: (sqlx::types::chrono::Utc::now().timestamp() as usize) + 3_600_000,

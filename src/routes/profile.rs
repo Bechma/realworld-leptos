@@ -7,13 +7,12 @@ use leptos_router::*;
 #[server(UserArticlesAction, "/api", "GetJson")]
 #[tracing::instrument]
 pub async fn profile_articles(
-    cx: Scope,
     username: String,
     favourites: Option<bool>,
 ) -> Result<Vec<crate::models::ArticlePreview>, ServerFnError> {
     crate::models::ArticlePreview::for_user_profile(
         username,
-        crate::auth::get_username(cx).unwrap_or_default(),
+        crate::auth::get_username().unwrap_or_default(),
         favourites.unwrap_or_default(),
     )
     .await
@@ -32,7 +31,7 @@ pub struct UserProfileModel {
 
 #[server(UserProfileAction, "/api", "GetJson")]
 #[tracing::instrument]
-pub async fn user_profile(cx: Scope, username: String) -> Result<UserProfileModel, ServerFnError> {
+pub async fn user_profile(username: String) -> Result<UserProfileModel, ServerFnError> {
     let user = crate::models::User::get(username.clone())
         .await
         .map_err(|x| {
@@ -40,7 +39,7 @@ pub async fn user_profile(cx: Scope, username: String) -> Result<UserProfileMode
             tracing::error!("{err}");
             ServerFnError::ServerError("Could not retrieve articles, try again later".into())
         })?;
-    match crate::auth::get_username(cx) {
+    match crate::auth::get_username() {
         Some(lu) => sqlx::query!(
             "SELECT EXISTS(SELECT * FROM Follows WHERE follower=$2 and influencer=$1)",
             username,
@@ -67,22 +66,21 @@ pub async fn user_profile(cx: Scope, username: String) -> Result<UserProfileMode
 #[allow(clippy::redundant_closure)]
 #[tracing::instrument]
 #[component]
-pub fn Profile(cx: Scope, username: crate::auth::UsernameSignal) -> impl IntoView {
-    let params = use_params_map(cx);
+pub fn Profile(username: crate::auth::UsernameSignal) -> impl IntoView {
+    let params = use_params_map();
     let route_user = move || params.with(|x| x.get("user").cloned().unwrap_or_default());
-    let query = use_query_map(cx);
+    let query = use_query_map();
     let favourite = move || query.with(|x| x.get("favourites").map(|_| true));
 
     let user_article_href = move || format!("/profile/{}", route_user());
     let favourites_href = move || format!("{}?favourites=true", user_article_href());
 
     let articles = create_resource(
-        cx,
         move || (favourite(), route_user()),
-        move |(fav, user)| async move { profile_articles(cx, user, fav).await },
+        move |(fav, user)| async move { profile_articles(user, fav).await },
     );
 
-    view! { cx,
+    view! {
         <Title text=move || format!("{}'s profile", route_user()) />
         <div class="profile-page">
             <UserInfo logged_user=username />
@@ -115,36 +113,35 @@ pub fn Profile(cx: Scope, username: crate::auth::UsernameSignal) -> impl IntoVie
 }
 
 #[component]
-pub fn UserInfo(cx: Scope, logged_user: crate::auth::UsernameSignal) -> impl IntoView {
-    let params = use_params_map(cx);
+pub fn UserInfo(logged_user: crate::auth::UsernameSignal) -> impl IntoView {
+    let params = use_params_map();
     let resource = create_resource(
-        cx,
         move || (params.with(|x| x.get("user").cloned().unwrap_or_default())),
-        move |user| async move { user_profile(cx, user).await },
+        move |user| async move { user_profile(user).await },
     );
 
-    view! { cx,
+    view! {
         <div class="user-info">
             <div class="container">
                 <div class="row">
                     <div class="col-xs-12 col-md-10 offset-md-1">
                     <Suspense
-                        fallback=move || view!{cx, <p>"Loading user profile"</p>}
+                        fallback=move || view!{<p>"Loading user profile"</p>}
                     >
                         <ErrorBoundary
-                            fallback=|cx, _| {
-                                view!{cx, <p>"There was a problem while fetching the user profile, try again later"</p>}
+                            fallback=|_| {
+                                view!{<p>"There was a problem while fetching the user profile, try again later"</p>}
                             }
                         >
                             {move || {
-                                resource.with(cx, move |x| {
+                                resource.with(move |x| {
                                     x.clone().map(move |u| {
                                         let image = u.user.image();
                                         let username = u.user.username();
                                         let bio = u.user.bio();
-                                        let (author, _) = create_signal(cx, username.to_string());
+                                        let (author, _) = create_signal(username.to_string());
 
-                                        view!{cx,
+                                        view!{
                                             <img src=image class="user-img" />
                                             <h4>{username}</h4>
                                             <p>{bio.unwrap_or("No bio available".into())}</p>

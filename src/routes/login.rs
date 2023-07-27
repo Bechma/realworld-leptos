@@ -4,8 +4,8 @@ use leptos_meta::*;
 use leptos_router::*;
 
 #[component]
-pub fn Login(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
-    let login_server_action = create_server_action::<LoginAction>(cx);
+pub fn Login(username: RwSignal<Option<String>>) -> impl IntoView {
+    let login_server_action = create_server_action::<LoginAction>();
 
     let result_of_call = login_server_action.value();
 
@@ -15,9 +15,9 @@ pub fn Login(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
                 .map(|inner| match inner {
                     Ok(LoginMessages::Unsuccessful) => "Incorrect user or password",
                     Ok(LoginMessages::Successful) => {
-                        username.set(crate::auth::get_username(cx));
+                        username.set(crate::auth::get_username());
                         request_animation_frame(move || {
-                            use_navigate(cx)("/", NavigateOptions::default()).unwrap();
+                            use_navigate()("/", NavigateOptions::default()).unwrap();
                         });
                         ""
                     }
@@ -27,7 +27,7 @@ pub fn Login(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
         })
     };
 
-    view! { cx,
+    view! {
         <Title text="Login"/>
         <div class="auth-page">
             <div class="container page">

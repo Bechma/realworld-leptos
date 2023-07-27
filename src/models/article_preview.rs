@@ -22,13 +22,12 @@ pub struct UserPreview {
 impl ArticlePreview {
     #[cfg(feature = "ssr")]
     pub async fn for_home_page(
-        cx: leptos::Scope,
         page: i64,
         amount: i64,
         tag: String,
         my_feed: bool,
     ) -> Result<Vec<Self>, sqlx::Error> {
-        let username = crate::auth::get_username(cx).unwrap_or_default();
+        let username = crate::auth::get_username().unwrap_or_default();
         sqlx::query!(
             "
 SELECT 

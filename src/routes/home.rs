@@ -5,7 +5,6 @@ use leptos_router::*;
 
 #[server(HomeAction, "/api", "GetJson")]
 async fn home_articles(
-    cx: Scope,
     page: u32,
     amount: u32,
     tag: String,
@@ -15,7 +14,7 @@ async fn home_articles(
     let amount = i64::from(amount);
 
     Ok(
-        crate::models::ArticlePreview::for_home_page(cx, page, amount, tag, my_feed)
+        crate::models::ArticlePreview::for_home_page(page, amount, tag, my_feed)
             .await
             .map_err(|x| {
                 tracing::error!("problem while fetching home articles: {x:?}");
@@ -38,16 +37,14 @@ async fn get_tags() -> Result<Vec<String>, ServerFnError> {
 
 /// Renders the home page of your application.
 #[component]
-pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
-    let pagination = use_query::<crate::models::Pagination>(cx);
+pub fn HomePage(username: RwSignal<Option<String>>) -> impl IntoView {
+    let pagination = use_query::<crate::models::Pagination>();
 
     let articles = create_resource(
-        cx,
         move || pagination.get().unwrap_or_default(),
         move |pagination| async move {
             tracing::debug!("making another request: {pagination:?}");
             home_articles(
-                cx,
                 pagination.get_page(),
                 pagination.get_amount(),
                 pagination.get_tag().to_string(),
@@ -93,7 +90,7 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
         )
     };
 
-    view! { cx,
+    view! {
         <Title text="Home"/>
 
         <div class="home-page">
@@ -145,7 +142,7 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                     <ul class="pagination">
                         <Show
                             when=move || {pagination.with(|x| x.as_ref().map(crate::models::Pagination::get_page).unwrap_or_default()) > 0}
-                            fallback=|_| ()
+                            fallback=|| ()
                         >
                             <li class="page-item">
                                 <a class="btn btn-primary" href=move || pagination.get().unwrap_or_default().previous_page().to_string()>
@@ -157,11 +154,11 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
                             <Show
                                 // TODO: fix this dummy logic
                                 when=move || {
-                                    let n_articles = articles.with(cx, |x| x.as_ref().map(Vec::len).unwrap_or_default()).unwrap_or_default();
+                                    let n_articles = articles.with(|x| x.as_ref().map(Vec::len).unwrap_or_default()).unwrap_or_default();
                                     n_articles > 0 && n_articles >=
                                     pagination.with(|x| x.as_ref().map(crate::models::Pagination::get_amount).unwrap_or_default()) as usize
                                 }
-                                fallback=|_| ()
+                                fallback=|| ()
                             >
                                 <li class="page-item">
                                     <a class="btn btn-primary" href=move || pagination.get().unwrap_or_default().next_page().to_string()>
@@ -178,9 +175,9 @@ pub fn HomePage(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView 
 }
 
 #[component]
-fn TagList(cx: Scope) -> impl IntoView {
-    let pagination = use_query::<crate::models::Pagination>(cx);
-    let tag_list = create_resource(cx, || (), |_| async { get_tags().await });
+fn TagList() -> impl IntoView {
+    let pagination = use_query::<crate::models::Pagination>();
+    let tag_list = create_resource(|| (), |_| async { get_tags().await });
 
     // TODO: Wonder if it's possible to reduce reduce the 2x clone
     let tag_view = move || {
@@ -190,19 +187,20 @@ fn TagList(cx: Scope) -> impl IntoView {
                 .unwrap_or_default()
                 .to_string()
         });
-        tag_list.with(cx, move |ts| {
+        tag_list.with(move |ts| {
             ts.clone().map(move |tags| {
-                view! { cx,
+                // TODO: Uncomment this when the bug it's fixed
+                view! {
                     <For
                         each=move || tags.clone().into_iter().enumerate()
                         key=|(i, _)| *i
-                        view=move |cx, (_, t): (usize, String)| {
+                        view=move |(_, t): (usize, String)| {
                             let t2 = t.to_string();
                             let same = t2 == tag_elected;
-                            view!{cx,
+                            view!{
                                 <a class="tag-pill tag-default" class:tag-primary=same
-                                    href=move || pagination.get().unwrap_or_default().set_tag(if same {""} else {&t}).to_string()>
-                                    {t2}
+                                    href=move || pagination.get().unwrap_or_default().set_tag(if same {""} else {&t2}).to_string()>
+                                    {t}
                                 </a>
                             }
                         }
@@ -212,11 +210,11 @@ fn TagList(cx: Scope) -> impl IntoView {
         })
     };
 
-    view! { cx,
+    view! {
         <div class="tag-list">
-            <Suspense fallback=move || view! {cx, <p>"Loading Tags"</p> }>
-                <ErrorBoundary fallback=|cx, _| {
-                    view! { cx, <p class="error-messages text-xs-center">"Something went wrong."</p>}
+            <Suspense fallback=move || view! {<p>"Loading Tags"</p> }>
+                <ErrorBoundary fallback=|_| {
+                    view! { <p class="error-messages text-xs-center">"Something went wrong."</p>}
                 }>
                     {tag_view}
                 </ErrorBoundary>

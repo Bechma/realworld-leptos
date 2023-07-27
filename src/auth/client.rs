@@ -1,5 +1,5 @@
 #[tracing::instrument]
-pub fn get_username(_cx: leptos::Scope) -> Option<String> {
+pub fn get_username() -> Option<String> {
     use wasm_bindgen::JsCast;
 
     let doc = leptos::document().unchecked_into::<web_sys::HtmlDocument>();

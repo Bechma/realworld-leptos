@@ -17,7 +17,7 @@ pub fn hydrate() {
     tracing_wasm::set_as_global_default();
     console_error_panic_hook::set_once();
 
-    leptos::mount_to_body(move |cx| view! { cx, <App/> });
+    leptos::mount_to_body(move || view! { <App/> });
 }
 
 #[cfg(feature = "hydrate")]

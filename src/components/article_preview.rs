@@ -10,21 +10,20 @@ type ArticlesType<S, T = Result<Vec<crate::models::ArticlePreview>, ServerFnErro
 
 #[component]
 pub fn ArticlePreviewList<S: 'static + std::clone::Clone>(
-    cx: Scope,
     username: crate::auth::UsernameSignal,
     articles: ArticlesType<S>,
 ) -> impl IntoView {
     // TODO: When the user logouts in the main screen, there's a request to articles... WHY?
     let articles_view = move || {
-        articles.with(cx, move |x| {
+        articles.with(move |x| {
             x.clone().map(move |res| {
-                view! {cx,
+                view! {
                     <For
                         each=move || res.clone().into_iter().enumerate()
                         key=|(i, _)| *i
-                        view=move |cx, (_, article): (usize, crate::models::ArticlePreview)| {
-                            let article = create_rw_signal(cx, article);
-                            view! {cx,
+                        view=move |(_, article): (usize, crate::models::ArticlePreview)| {
+                            let article = create_rw_signal(article);
+                            view! {
                                 <ArticlePreview article=article username=username />
                             }
                         }
@@ -34,10 +33,10 @@ pub fn ArticlePreviewList<S: 'static + std::clone::Clone>(
         })
     };
 
-    view! {cx,
-        <Suspense fallback=move || view! {cx, <p>"Loading Articles"</p> }>
-            <ErrorBoundary fallback=|cx, _| {
-                view! { cx, <p class="error-messages text-xs-center">"Something went wrong."</p>}
+    view! {
+        <Suspense fallback=move || view! {<p>"Loading Articles"</p> }>
+            <ErrorBoundary fallback=|_| {
+                view! { <p class="error-messages text-xs-center">"Something went wrong."</p>}
             }>
                 {articles_view}
             </ErrorBoundary>
@@ -46,12 +45,8 @@ pub fn ArticlePreviewList<S: 'static + std::clone::Clone>(
 }
 
 #[component]
-fn ArticlePreview(
-    cx: Scope,
-    username: crate::auth::UsernameSignal,
-    article: ArticleSignal,
-) -> impl IntoView {
-    view! {cx,
+fn ArticlePreview(username: crate::auth::UsernameSignal, article: ArticleSignal) -> impl IntoView {
+    view! {
         <div class="article-preview">
             <ArticleMeta username=username article=article is_preview=true />
             // {{self::metadata(article=article, is_preview=true)}}
@@ -61,15 +56,15 @@ fn ArticlePreview(
                 <span class="btn">"Read more..."</span>
                 <Show
                     when=move || article.with(|x| !x.tags.is_empty())
-                    fallback=|cx| view! {cx, <span>"No tags"</span>}
+                    fallback=|| view! {<span>"No tags"</span>}
                 >
                     <ul class="tag-list">
                         <i class="ion-pound"></i>
                         <For
                             each=move || article.with(|x| x.tags.clone().into_iter().enumerate())
                             key=|(i, _)| *i
-                            view=move |cx, (_, tag): (usize, String)| {
-                                view!{cx, <li class="tag-default tag-pill tag-outline">{tag}</li>}
+                            view=move |(_, tag): (usize, String)| {
+                                view!{<li class="tag-default tag-pill tag-outline">{tag}</li>}
                             }
                         />
                     </ul>
@@ -81,7 +76,6 @@ fn ArticlePreview(
 
 #[component]
 fn ArticleMeta(
-    cx: Scope,
     username: crate::auth::UsernameSignal,
     article: ArticleSignal,
     is_preview: bool,
@@ -94,7 +88,7 @@ fn ArticleMeta(
         )
     };
 
-    view! {cx,
+    view! {
         <div class="article-meta">
             <A href=profile_ref><img src=move || article.with(|x| x.author.image.clone().unwrap_or_default()) /></A>
             <div class="info">
@@ -103,15 +97,15 @@ fn ArticleMeta(
             </div>
             <Show
                 when=move || is_preview
-                fallback=move |cx| {
-                    view! {cx,
+                fallback=move || {
+                    view! {
                         <Show
                             when=move || {username.get().unwrap_or_default() == article.with(|x| x.author.username.to_string())}
-                            fallback=move |cx| {
+                            fallback=move || {
                                 let following = article.with(|x| x.author.following);
-                                let (author, _) = create_signal(cx, article.with(|x| x.author.username.to_string()));
-                                view!{cx,
-                                <Show when=move || username.with(Option::is_some) fallback=|_| ()>
+                                let (author, _) = create_signal(article.with(|x| x.author.username.to_string()));
+                                view!{
+                                <Show when=move || username.with(Option::is_some) fallback=|| ()>
                                     <ButtonFav username=username article=article />
                                     <ButtonFollow logged_user=username author following />
                                 </Show>

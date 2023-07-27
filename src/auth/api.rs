@@ -25,7 +25,6 @@ pub fn validate_signup(
 #[tracing::instrument]
 #[server(SignupAction, "/api")]
 pub async fn signup_action(
-    cx: Scope,
     username: String,
     email: String,
     password: String,
@@ -33,7 +32,7 @@ pub async fn signup_action(
     match validate_signup(username.clone(), email, password) {
         Ok(user) => match user.insert().await {
             Ok(_) => {
-                crate::auth::set_username(cx, username).await;
+                crate::auth::set_username(username).await;
                 Ok(SignupResponse::Success)
             }
             Err(x) => {
@@ -63,7 +62,6 @@ pub enum LoginMessages {
 #[server(LoginAction, "/api")]
 #[tracing::instrument]
 pub async fn login_action(
-    cx: Scope,
     username: String,
     password: String,
 ) -> Result<LoginMessages, ServerFnError> {
@@ -77,11 +75,11 @@ pub async fn login_action(
     .unwrap_or_default()
         == username
     {
-        crate::auth::set_username(cx, username).await;
+        crate::auth::set_username(username).await;
         // leptos_axum::redirect(cx, "/"); // TODO remove when it doesn't provoke a full app reload
         Ok(LoginMessages::Successful)
     } else {
-        let response_options = use_context::<leptos_axum::ResponseOptions>(cx).unwrap();
+        let response_options = use_context::<leptos_axum::ResponseOptions>().unwrap();
         response_options.set_status(axum::http::StatusCode::FORBIDDEN);
         Ok(LoginMessages::Unsuccessful)
     }
@@ -89,8 +87,8 @@ pub async fn login_action(
 
 #[server(LogoutAction, "/api")]
 #[tracing::instrument]
-pub async fn logout_action(cx: Scope) -> Result<(), ServerFnError> {
-    let response_options = use_context::<leptos_axum::ResponseOptions>(cx).unwrap();
+pub async fn logout_action() -> Result<(), ServerFnError> {
+    let response_options = use_context::<leptos_axum::ResponseOptions>().unwrap();
     response_options.insert_header(
         axum::http::header::SET_COOKIE,
         axum::http::HeaderValue::from_str(crate::auth::REMOVE_COOKIE)

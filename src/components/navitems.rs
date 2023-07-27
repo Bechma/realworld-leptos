@@ -3,7 +3,6 @@ use leptos_router::*;
 
 #[component]
 pub(crate) fn NavItems(
-    cx: Scope,
     logout: crate::auth::LogoutSignal,
     username: RwSignal<Option<String>>,
 ) -> impl IntoView {
@@ -18,7 +17,7 @@ pub(crate) fn NavItems(
     let anonymous_style = move || username.get().map(|_| "display: none;").unwrap_or("");
 
     let result_of_call = logout.value();
-    create_effect(cx, move |_| {
+    create_effect(move |_| {
         let res = result_of_call.get();
         tracing::debug!("Result logout: {:?}", res);
         if let Some(x) = res {
@@ -26,12 +25,12 @@ pub(crate) fn NavItems(
                 Ok(()) => {
                     username.set(None);
                     request_animation_frame(move || {
-                        let route = use_router(cx);
+                        let route = use_router();
                         let path = route.pathname();
                         let path = path.get_untracked();
                         tracing::debug!("Logout request_animation_frame path: {path}");
                         if path.starts_with("/settings") || path.starts_with("/editor") {
-                            use_navigate(cx)("/login", NavigateOptions::default()).unwrap();
+                            use_navigate()("/login", NavigateOptions::default()).unwrap();
                         }
                     });
                 }
@@ -40,7 +39,10 @@ pub(crate) fn NavItems(
         }
     });
 
-    view! {cx,
+    view! {
+        <li class="nav-item">
+            <A class="nav-link".to_string() href="/" exact=true><i class="ion-home"></i>" Home"</A>
+        </li>
         <li class="nav-item" style=logged_style>
             <A class="nav-link".to_string() href="/editor"><i class="ion-compose"></i>" New Article"</A>
         </li>

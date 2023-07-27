@@ -14,14 +14,13 @@ pub enum SettingsUpdateError {
 #[tracing::instrument]
 #[server(SettingsUpdateAction, "/api")]
 pub async fn settings_update(
-    cx: Scope,
     image: String,
     bio: String,
     email: String,
     password: String,
     confirm_password: String,
 ) -> Result<SettingsUpdateError, ServerFnError> {
-    let user = get_user(cx).await?;
+    let user = get_user().await?;
     let username = user.username();
     let user = match update_user_validation(user, image, bio, email, password, confirm_password) {
         Ok(x) => x,
@@ -66,9 +65,9 @@ fn update_user_validation(
 }
 
 #[cfg(feature = "ssr")]
-async fn get_user(cx: Scope) -> Result<crate::models::User, ServerFnError> {
-    let Some(username) = crate::auth::get_username(cx) else {
-        leptos_axum::redirect(cx, "/login");
+async fn get_user() -> Result<crate::models::User, ServerFnError> {
+    let Some(username) = crate::auth::get_username() else {
+        leptos_axum::redirect("/login");
         return Err(ServerFnError::ServerError("You need to be authenticated".to_string()));
     };
 
@@ -81,8 +80,8 @@ async fn get_user(cx: Scope) -> Result<crate::models::User, ServerFnError> {
 
 #[tracing::instrument]
 #[server(SettingsGetAction, "/api", "GetJson")]
-pub async fn settings_get(cx: Scope) -> Result<crate::models::User, ServerFnError> {
-    get_user(cx).await
+pub async fn settings_get() -> Result<crate::models::User, ServerFnError> {
+    get_user().await
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
@@ -94,10 +93,10 @@ pub struct UserGet {
 }
 
 #[component]
-pub fn Settings(cx: Scope, logout: crate::auth::LogoutSignal) -> impl IntoView {
-    let resource = create_resource(cx, || (), move |_| async move { settings_get(cx).await });
+pub fn Settings(logout: crate::auth::LogoutSignal) -> impl IntoView {
+    let resource = create_resource(|| (), move |_| async move { settings_get().await });
 
-    view! { cx,
+    view! {
         <Title text="Settings"/>
 
         <div class="settings-page">
@@ -107,17 +106,17 @@ pub fn Settings(cx: Scope, logout: crate::auth::LogoutSignal) -> impl IntoView {
                         <h1 class="text-xs-center">"Your Settings"</h1>
 
                         <Suspense
-                            fallback=move || view!{cx, <p>"Loading user settings"</p>}
+                            fallback=move || view!{<p>"Loading user settings"</p>}
                         >
                             <ErrorBoundary
-                                fallback=|cx, _| {
-                                    view!{cx, <p>"There was a problem while fetching settings, try again later"</p>}
+                                fallback=|_| {
+                                    view!{<p>"There was a problem while fetching settings, try again later"</p>}
                                 }
                             >
                                 {move || {
-                                    resource.with(cx, move |x| {
+                                    resource.with(move |x| {
                                         x.clone().map(move |user| {
-                                            view!{cx, <SettingsViewForm user />}
+                                            view!{<SettingsViewForm user />}
                                         })
                                     })
                                 }}
@@ -135,8 +134,8 @@ pub fn Settings(cx: Scope, logout: crate::auth::LogoutSignal) -> impl IntoView {
 }
 
 #[component]
-fn SettingsViewForm(cx: Scope, user: crate::models::User) -> impl IntoView {
-    let settings_server_action = create_server_action::<SettingsUpdateAction>(cx);
+fn SettingsViewForm(user: crate::models::User) -> impl IntoView {
+    let settings_server_action = create_server_action::<SettingsUpdateAction>();
     let result = settings_server_action.value();
     let error = move || {
         result.with(|x| {
@@ -146,7 +145,7 @@ fn SettingsViewForm(cx: Scope, user: crate::models::User) -> impl IntoView {
         })
     };
 
-    view! {cx,
+    view! {
         <p class="text-xs-center"
             class:text-success=move || !error()
             class:error-messages=error

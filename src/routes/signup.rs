@@ -5,8 +5,8 @@ use leptos_router::*;
 
 #[tracing::instrument]
 #[component]
-pub fn Signup(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
-    let signup_server_action = create_server_action::<SignupAction>(cx);
+pub fn Signup(username: RwSignal<Option<String>>) -> impl IntoView {
+    let signup_server_action = create_server_action::<SignupAction>();
     let result_of_call = signup_server_action.value();
 
     let error_cb = move || {
@@ -16,9 +16,9 @@ pub fn Signup(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
                 Ok(SignupResponse::ValidationError(x)) => format!("Problem while validating: {x}"),
                 Ok(SignupResponse::CreateUserError(x)) => x,
                 Ok(SignupResponse::Success) => {
-                    username.set(crate::auth::get_username(cx));
+                    username.set(crate::auth::get_username());
                     request_animation_frame(move || {
-                        use_navigate(cx)("/", NavigateOptions::default()).unwrap();
+                        use_navigate()("/", NavigateOptions::default()).unwrap();
                     });
                     String::new()
                 }
@@ -27,7 +27,7 @@ pub fn Signup(cx: Scope, username: RwSignal<Option<String>>) -> impl IntoView {
             .unwrap_or_default()
     };
 
-    view! { cx,
+    view! {
         <Title text="Signup"/>
         <div class="auth-page">
             <div class="container page">

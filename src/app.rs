@@ -7,16 +7,14 @@ use crate::routes::*;
 
 #[tracing::instrument]
 #[component]
-pub fn App(cx: Scope) -> impl IntoView {
+pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
-    provide_meta_context(cx);
+    provide_meta_context();
 
-    let username = create_rw_signal(cx, crate::auth::get_username(cx));
-    let logout = create_server_action::<crate::auth::LogoutAction>(cx);
+    let username = create_rw_signal(crate::auth::get_username());
+    let logout = create_server_action::<crate::auth::LogoutAction>();
 
     view! {
-        cx,
-
         // injects a stylesheet into the document <head>
         // id=leptos means cargo-leptos will hot-reload this stylesheet
         <Stylesheet href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css"/>
@@ -32,26 +30,23 @@ pub fn App(cx: Scope) -> impl IntoView {
                 <div class="container">
                     <A class="navbar-brand".to_string() href="/" exact=true>"conduit"</A>
                     <ul class="nav navbar-nav pull-xs-right">
-                        <li class="nav-item">
-                            <A class="nav-link".to_string() href="/" exact=true><i class="ion-home"></i>" Home"</A>
-                        </li>
                         <NavItems logout=logout username=username />
                     </ul>
                 </div>
             </nav>
             <main>
                 <Routes>
-                    <Route path="/" view=move |cx| view! { cx, <HomePage username=username/> }/>
-                    <Route path="/login" view=move |cx| view! { cx, <Login username=username/> }/>
-                    <Route path="/signup" view=move |cx| view! { cx, <Signup username=username/> }/>
-                    <Route path="/settings" view=move |cx| view! { cx, <Settings logout=logout /> }/>
-                    <Route path="/editor/:slug?" view=|cx| view! { cx, <Editor/> }/>
-                    <Route path="/profile/:user" view=move |cx| view! { cx, <Profile username=username/> }/>
+                    <Route path="/" view=move || view! { <HomePage username=username/> }/>
+                    <Route path="/login" view=move || view! { <Login username=username/> }/>
+                    <Route path="/signup" view=move || view! { <Signup username=username/> }/>
+                    <Route path="/settings" view=move || view! { <Settings logout=logout /> }/>
+                    <Route path="/editor/:slug?" view=|| view! { <Editor/> }/>
+                    <Route path="/profile/:user" view=move || view! { <Profile username=username/> }/>
                 </Routes>
             </main>
             <footer>
                 <div class="container">
-                    <a href="/" class="logo-font">"conduit"</a>
+                    <A href="/" class="logo-font">"conduit"</A>
                     <span class="attribution">
                         "An interactive learning project from "
                         <a href="https://thinkster.io">"Thinkster"</a>

@@ -116,15 +116,14 @@ async fn update_article(
 #[server(EditorAction, "/api")]
 #[tracing::instrument]
 pub async fn editor_action(
-    cx: Scope,
     title: String,
     description: String,
     body: String,
     tag_list: String,
     slug: String,
 ) -> Result<EditorResponse, ServerFnError> {
-    let Some(author) = crate::auth::get_username(cx) else {
-        leptos_axum::redirect(cx, "/login");
+    let Some(author) = crate::auth::get_username() else {
+        leptos_axum::redirect("/login");
         return Ok(EditorResponse::ValidationError("you should be authenticated".to_string()));
     };
     let article = match validate_article(title, description, body, tag_list) {
@@ -142,35 +141,35 @@ pub async fn editor_action(
 
 #[tracing::instrument]
 #[component]
-pub fn Editor(cx: Scope) -> impl IntoView {
-    let error = create_rw_signal(cx, view! {cx, <ul></ul>});
+pub fn Editor() -> impl IntoView {
+    let error = create_rw_signal(view! {<ul></ul>});
 
-    let editor_server_action = create_server_action::<EditorAction>(cx);
+    let editor_server_action = create_server_action::<EditorAction>();
     let result_of_call = editor_server_action.value();
 
-    let params = use_params_map(cx);
+    let params = use_params_map();
     let slug = params.get().get("slug").cloned().unwrap_or_default();
 
-    create_effect(cx, move |_| {
+    create_effect(move |_| {
         if let Some(msg) = result_of_call.get() {
             match msg {
-                Ok(EditorResponse::ValidationError(x)) => error.set(view! {cx,
+                Ok(EditorResponse::ValidationError(x)) => error.set(view! {
                     <ul class="error-messages">
                         <li>"Problem while validating: "{x}</li>
                     </ul>
                 }),
-                Ok(EditorResponse::UpdateError) => error.set(view! {cx,
+                Ok(EditorResponse::UpdateError) => error.set(view! {
                     <ul class="error-messages">
                         <li>"Error while updating the article, please, try again later"</li>
                     </ul>
                 }),
                 Ok(EditorResponse::Success(x)) => {
                     request_animation_frame(move || {
-                        use_navigate(cx)(&format!("/article/{x}"), NavigateOptions::default())
+                        use_navigate()(&format!("/article/{x}"), NavigateOptions::default())
                             .unwrap();
                     });
                 }
-                Err(x) => error.set(view! {cx,
+                Err(x) => error.set(view! {
                     <ul class="error-messages">
                         <li>"Unexpected error: "{x.to_string()}</li>
                     </ul>
@@ -180,7 +179,7 @@ pub fn Editor(cx: Scope) -> impl IntoView {
         tracing::debug!("Editor Effect!");
     });
 
-    view! { cx,
+    view! {
         <Title text="Editor"/>
         <div class="editor-page">
             <div class="container page">
@@ -192,7 +191,7 @@ pub fn Editor(cx: Scope) -> impl IntoView {
                                 return ev.prevent_default();
                             };
                             if let Err(x) = validate_article(data.title, data.description, data.body, data.tag_list) {
-                                error.set(view! {cx,
+                                error.set(view! {
                                     <ul class="error-messages">
                                         <li>"Problem while validating: "{format!("{x:?}")}</li>
                                     </ul>
