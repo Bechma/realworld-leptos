@@ -3,33 +3,43 @@
     <img src="https://raw.githubusercontent.com/leptos-rs/leptos/main/docs/logos/Leptos_logo_RGB.svg" alt="Leptos Logo">
 </picture>
 
-# WIP
+# Missing features
 
-# Leptos Starter Template
+- [ ] Fix Editor component when he receives a slug in the url
+- [ ] Do some general manual testing
+- [ ] Add some testing examples
+- [ ] Deployment(maybe in Docker)
 
-This is a template for use with the [Leptos](https://github.com/leptos-rs/leptos) web framework and the [cargo-leptos](https://github.com/akesson/cargo-leptos) tool.
+# Requirements
 
-## Creating your template repo
+## Rust with Webassembly support
 
-If you don't have `cargo-leptos` installed you can install it with
+`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+
+Once finished, add webassembly target to rust:
+
+`rustup target add wasm32-unknown-unknown`
+
+## cargo-leptos
+
+This is an utility to easily compile either backend and frontend at the same time:
 
 `cargo install cargo-leptos`
 
-Then run
+# How to run this project
 
-`cargo leptos new --git leptos-rs/start`
+First, deploy a local postgres database, maybe docker is the fastest solution:
 
-to generate a new project template.
+`docker run --name postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres`
 
-`cd {projectname}`
+Clone it into your machine and run it with cargo-leptos:
 
-to go to your newly created project.
-
-Of course you should explore around the project structure, but the best place to start with your application code is in `src/app/mod.rs`.
-
-## Running your project
-
-`cargo leptos watch`
+```
+git clone https://github.com/Bechma/realworld-leptos.git
+cd realworld-leptos
+export DATABASE_URL=postgres://postgres:postgres@localhost/postgres
+cargo leptos watch
+```
 
 ## Installing Additional Tools
 

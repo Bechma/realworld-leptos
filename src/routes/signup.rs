@@ -5,7 +5,7 @@ use leptos_router::*;
 
 #[tracing::instrument]
 #[component]
-pub fn Signup(username: RwSignal<Option<String>>) -> impl IntoView {
+pub fn Signup(username: crate::auth::UsernameSignal) -> impl IntoView {
     let signup_server_action = create_server_action::<SignupAction>();
     let result_of_call = signup_server_action.value();
 

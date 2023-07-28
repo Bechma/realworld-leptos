@@ -145,17 +145,8 @@ pub fn ButtonFav(
                 Ok(result) => {
                     article.update(move |x| {
                         x.fav = !x.fav;
-                        x.favorites_count = match x.favorites_count {
-                            Some(x) => {
-                                let int = x + if result { 1 } else { -1 };
-                                if int <= 0 {
-                                    None
-                                } else {
-                                    Some(int)
-                                }
-                            }
-                            None => Some(1),
-                        }
+                        x.favorites_count =
+                            (x.favorites_count + if result { 1 } else { -1 }).max(0);
                     });
                 }
                 Err(err) => {
@@ -163,7 +154,7 @@ pub fn ButtonFav(
                 }
             }
         }
-        article.with(|x| x.favorites_count.unwrap_or_default())
+        article.with(|x| x.favorites_count)
     };
 
     view! {

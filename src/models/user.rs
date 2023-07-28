@@ -1,15 +1,21 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Serialize, Deserialize, Clone, Default)]
+pub struct UserPreview {
+    pub username: String,
+    pub image: Option<String>,
+    pub following: bool,
+}
+
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 pub struct User {
     username: String,
-    #[allow(dead_code)]
-    #[serde(skip_deserializing, skip_serializing)]
+    #[cfg_attr(feature = "hydrate", allow(dead_code))]
+    #[serde(skip_serializing)]
     password: Option<String>,
     email: String,
     bio: Option<String>,
     image: Option<String>,
-    change_passwd: Option<String>,
 }
 
 #[cfg(feature = "ssr")]
@@ -37,7 +43,7 @@ impl User {
         if password.len() < 4 {
             return Err("You need to provide a stronger password".into());
         }
-        self.change_passwd = Some(password);
+        self.password = Some(password);
         Ok(self)
     }
 
@@ -102,7 +108,7 @@ impl User {
     pub async fn get(username: String) -> Result<Self, sqlx::Error> {
         sqlx::query_as!(
             Self,
-            "SELECT *, NULL as change_passwd FROM users WHERE username=$1",
+            "SELECT username, email, bio, image, NULL as password FROM users WHERE username=$1",
             username
         )
         .fetch_one(crate::database::get_db())
@@ -135,8 +141,8 @@ WHERE username=$1",
             self.image,
             self.bio,
             self.email,
-            self.change_passwd.is_some(),
-            self.change_passwd,
+            self.password.is_some(),
+            self.password,
         )
         .execute(crate::database::get_db())
         .await

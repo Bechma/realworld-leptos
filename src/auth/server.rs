@@ -23,12 +23,10 @@ pub(crate) static REMOVE_COOKIE: &str = "token=; path=/; expires=Thu, 01 Jan 197
 pub async fn auth_middleware<B>(req: Request<B>, next: axum::middleware::Next<B>) -> Response {
     match get_username_from_headers(req.headers()) {
         Some(username) => {
-            let Ok(_) = sqlx::query!("SELECT * FROM Users WHERE username = $1", username)
-                .fetch_one(crate::database::get_db())
-                .await else {
-                    tracing::info!("no user associated with this token");
-                    return redirect(req, next).await
-                };
+            let Ok(_) = crate::models::User::get(username).await else {
+                tracing::info!("no user associated with this token");
+                return redirect(req, next).await
+            };
 
             let path = req.uri().path();
             if path.starts_with("/login") || path.starts_with("/signup") {

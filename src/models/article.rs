@@ -1,25 +1,21 @@
+use super::UserPreview;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct ArticlePreview {
+pub struct Article {
     pub slug: String,
     pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub body: Option<String>,
     pub description: String,
     pub created_at: String,
-    pub favorites_count: Option<i64>,
+    pub favorites_count: i64,
+    pub tag_list: Vec<String>,
     pub author: UserPreview,
     pub fav: bool,
-    pub tags: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Default)]
-pub struct UserPreview {
-    pub username: String,
-    pub image: Option<String>,
-    pub following: bool,
-}
-
-impl ArticlePreview {
+impl Article {
     #[cfg(feature = "ssr")]
     pub async fn for_home_page(
         page: i64,
@@ -27,7 +23,7 @@ impl ArticlePreview {
         tag: String,
         my_feed: bool,
     ) -> Result<Vec<Self>, sqlx::Error> {
-        let username = crate::auth::get_username().unwrap_or_default();
+        let username = crate::auth::get_username();
         sqlx::query!(
             "
 SELECT 
@@ -61,16 +57,17 @@ LIMIT $1 OFFSET $2",
         .map(|x| Self {
             slug: x.slug,
             title: x.title,
+            body: None, // no need
             fav: x.fav.unwrap_or_default(),
             description: x.description,
-            created_at: x.created_at.format("%d/%m/%Y %H:%M").to_string(),
-            favorites_count: x.favorites_count,
+            created_at: x.created_at.format(super::DATE_FORMAT).to_string(),
+            favorites_count: x.favorites_count.unwrap_or_default(),
             author: UserPreview {
                 username: x.username,
                 image: x.image,
                 following: x.following.unwrap_or_default(),
             },
-            tags: x
+            tag_list: x
                 .tag_list
                 .unwrap_or_default()
                 .split(' ')
@@ -84,11 +81,9 @@ LIMIT $1 OFFSET $2",
     #[cfg(feature = "ssr")]
     pub async fn for_user_profile(
         username: String,
-        logged_user: String,
         favourites: bool,
-    ) -> Result<Vec<crate::models::ArticlePreview>, sqlx::Error> {
-        // I couldn't make this smaller... sadge
-        // JOIN FavArticles as fa ON fa.article = a.slug and fa.username = $1
+    ) -> Result<Vec<Self>, sqlx::Error> {
+        let logged_user = crate::auth::get_username();
         sqlx::query!(
             "
 SELECT 
@@ -113,14 +108,15 @@ WHERE
             logged_user,
             favourites,
         )
-        .map(|x| ArticlePreview {
+        .map(|x| Self {
             slug: x.slug,
             title: x.title,
+            body: None, // no need
             fav: x.fav.unwrap_or_default(),
             description: x.description,
-            created_at: x.created_at.format("%d/%m/%Y %H:%M").to_string(),
-            favorites_count: x.favorites_count,
-            tags: x
+            created_at: x.created_at.format(super::DATE_FORMAT).to_string(),
+            favorites_count: x.favorites_count.unwrap_or_default(),
+            tag_list: x
                 .tag_list
                 .map(|x| x.split(' ').map(ToString::to_string).collect::<Vec<_>>())
                 .unwrap_or_default(),
@@ -131,6 +127,63 @@ WHERE
             },
         })
         .fetch_all(crate::database::get_db())
+        .await
+    }
+
+    #[cfg(feature = "ssr")]
+    pub async fn for_article_page(slug: String) -> Result<Self, sqlx::Error> {
+        let username = crate::auth::get_username();
+        sqlx::query!(
+            "
+    SELECT
+        a.*,
+        (SELECT string_agg(tag, ' ') FROM ArticleTags WHERE article = a.slug) as tag_list,
+        (SELECT COUNT(*) FROM FavArticles WHERE article = a.slug) as fav_count,
+        u.*,
+        EXISTS(SELECT 1 FROM FavArticles WHERE article=a.slug and username=$2) as fav,
+        EXISTS(SELECT 1 FROM Follows WHERE follower=$2 and influencer=a.author) as following
+    FROM Articles a
+        JOIN Users u ON a.author = u.username
+    WHERE slug = $1
+    ",
+            slug,
+            username,
+        )
+        .map(|x| Self {
+            slug: x.slug,
+            title: x.title,
+            description: x.description,
+            body: Some(x.body),
+            tag_list: x
+                .tag_list
+                .unwrap_or_default()
+                .split_ascii_whitespace()
+                .map(str::to_string)
+                .collect::<Vec<_>>(),
+            favorites_count: x.fav_count.unwrap_or_default(),
+            created_at: x.created_at.format(super::DATE_FORMAT).to_string(),
+            fav: x.fav.unwrap_or_default(),
+            author: UserPreview {
+                username: x.username,
+                image: x.image,
+                following: x.following.unwrap_or_default(),
+            },
+        })
+        .fetch_one(crate::database::get_db())
+        .await
+    }
+
+    #[cfg(feature = "ssr")]
+    pub async fn delete(
+        slug: String,
+        author: String,
+    ) -> Result<sqlx::postgres::PgQueryResult, sqlx::Error> {
+        sqlx::query!(
+            "DELETE FROM Articles WHERE slug=$1 and author=$2",
+            slug,
+            author
+        )
+        .execute(crate::database::get_db())
         .await
     }
 }

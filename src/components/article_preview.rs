@@ -3,10 +3,9 @@ use leptos_router::*;
 
 use super::buttons::{ButtonFav, ButtonFollow};
 
-pub type ArticleSignal = RwSignal<crate::models::ArticlePreview>;
+pub type ArticleSignal = RwSignal<crate::models::Article>;
 
-type ArticlesType<S, T = Result<Vec<crate::models::ArticlePreview>, ServerFnError>> =
-    Resource<S, T>;
+type ArticlesType<S, T = Result<Vec<crate::models::Article>, ServerFnError>> = Resource<S, T>;
 
 #[component]
 pub fn ArticlePreviewList<S: 'static + std::clone::Clone>(
@@ -21,7 +20,7 @@ pub fn ArticlePreviewList<S: 'static + std::clone::Clone>(
                     <For
                         each=move || res.clone().into_iter().enumerate()
                         key=|(i, _)| *i
-                        view=move |(_, article): (usize, crate::models::ArticlePreview)| {
+                        view=move |(_, article): (usize, crate::models::Article)| {
                             let article = create_rw_signal(article);
                             view! {
                                 <ArticlePreview article=article username=username />
@@ -55,13 +54,13 @@ fn ArticlePreview(username: crate::auth::UsernameSignal, article: ArticleSignal)
                 <p>{move || article.with(|x| x.description.to_string())}</p>
                 <span class="btn">"Read more..."</span>
                 <Show
-                    when=move || article.with(|x| !x.tags.is_empty())
+                    when=move || article.with(|x| !x.tag_list.is_empty())
                     fallback=|| view! {<span>"No tags"</span>}
                 >
                     <ul class="tag-list">
                         <i class="ion-pound"></i>
                         <For
-                            each=move || article.with(|x| x.tags.clone().into_iter().enumerate())
+                            each=move || article.with(|x| x.tag_list.clone().into_iter().enumerate())
                             key=|(i, _)| *i
                             view=move |(_, tag): (usize, String)| {
                                 view!{<li class="tag-default tag-pill tag-outline">{tag}</li>}
@@ -75,7 +74,7 @@ fn ArticlePreview(username: crate::auth::UsernameSignal, article: ArticleSignal)
 }
 
 #[component]
-fn ArticleMeta(
+pub fn ArticleMeta(
     username: crate::auth::UsernameSignal,
     article: ArticleSignal,
     is_preview: bool,
@@ -87,6 +86,8 @@ fn ArticleMeta(
             article.with(|x| x.author.username.to_string())
         )
     };
+
+    let delete_a = create_server_action::<DeleteArticleAction>();
 
     view! {
         <div class="article-meta">
@@ -114,11 +115,11 @@ fn ArticleMeta(
                             <A class="btn btn-sm btn-outline-secondary" href=editor_ref>
                                 <i class="ion-compose"></i>" Edit article"
                             </A>
-                            <form method="post" action="{{routes.article ~ '/' ~ article.slug ~ '/delete'}}" style="display: inline-block;">
+                            <ActionForm action=delete_a class="inline">
                                 <button type="submit" class="btn btn-sm btn-outline-secondary">
                                     <i class="ion-trash-a"></i>" Delete article"
                                 </button>
-                            </form>
+                            </ActionForm>
                         </Show>
                     }
                 }
@@ -127,4 +128,21 @@ fn ArticleMeta(
             </Show>
         </div>
     }
+}
+
+#[server(DeleteArticleAction, "/api")]
+#[tracing::instrument]
+pub async fn delete_article(slug: String) -> Result<(), ServerFnError> {
+    let Some(logged_user) = crate::auth::get_username() else {
+        return Err(ServerFnError::ServerError("you must be logged in".into()))
+    };
+
+    crate::models::Article::delete(slug, logged_user)
+        .await
+        .map(|_| ())
+        .map_err(|x| {
+            let err = format!("Error while deleting an article: {x:?}");
+            tracing::error!("{err}");
+            ServerFnError::ServerError("Could not delete the article, try again later".into())
+        })
 }

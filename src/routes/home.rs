@@ -9,12 +9,12 @@ async fn home_articles(
     amount: u32,
     tag: String,
     my_feed: bool,
-) -> Result<Vec<crate::models::ArticlePreview>, ServerFnError> {
+) -> Result<Vec<crate::models::Article>, ServerFnError> {
     let page = i64::from(page);
     let amount = i64::from(amount);
 
     Ok(
-        crate::models::ArticlePreview::for_home_page(page, amount, tag, my_feed)
+        crate::models::Article::for_home_page(page, amount, tag, my_feed)
             .await
             .map_err(|x| {
                 tracing::error!("problem while fetching home articles: {x:?}");
@@ -37,7 +37,7 @@ async fn get_tags() -> Result<Vec<String>, ServerFnError> {
 
 /// Renders the home page of your application.
 #[component]
-pub fn HomePage(username: RwSignal<Option<String>>) -> impl IntoView {
+pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
     let pagination = use_query::<crate::models::Pagination>();
 
     let articles = create_resource(

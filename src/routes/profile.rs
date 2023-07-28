@@ -9,18 +9,14 @@ use leptos_router::*;
 pub async fn profile_articles(
     username: String,
     favourites: Option<bool>,
-) -> Result<Vec<crate::models::ArticlePreview>, ServerFnError> {
-    crate::models::ArticlePreview::for_user_profile(
-        username,
-        crate::auth::get_username().unwrap_or_default(),
-        favourites.unwrap_or_default(),
-    )
-    .await
-    .map_err(|x| {
-        let err = format!("Error while getting user_profile articles: {x:?}");
-        tracing::error!("{err}");
-        ServerFnError::ServerError("Could not retrieve articles, try again later".into())
-    })
+) -> Result<Vec<crate::models::Article>, ServerFnError> {
+    crate::models::Article::for_user_profile(username, favourites.unwrap_or_default())
+        .await
+        .map_err(|x| {
+            let err = format!("Error while getting user_profile articles: {x:?}");
+            tracing::error!("{err}");
+            ServerFnError::ServerError("Could not retrieve articles, try again later".into())
+        })
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]

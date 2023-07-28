@@ -4,7 +4,7 @@ use leptos_meta::*;
 use leptos_router::*;
 
 #[component]
-pub fn Login(username: RwSignal<Option<String>>) -> impl IntoView {
+pub fn Login(username: crate::auth::UsernameSignal) -> impl IntoView {
     let login_server_action = create_server_action::<LoginAction>();
 
     let result_of_call = login_server_action.value();

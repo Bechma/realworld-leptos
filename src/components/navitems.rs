@@ -4,15 +4,10 @@ use leptos_router::*;
 #[component]
 pub(crate) fn NavItems(
     logout: crate::auth::LogoutSignal,
-    username: RwSignal<Option<String>>,
+    username: crate::auth::UsernameSignal,
 ) -> impl IntoView {
-    let profile_href = move || {
-        username
-            .get()
-            .map(|x| format!("/profile/{x}"))
-            .unwrap_or_default()
-    };
-    let profile_label = move || username.get().map(|x| format!(" {x}")).unwrap_or_default();
+    let profile_label = move || username.get().unwrap_or_default();
+    let profile_href = move || format!("/profile/{}", profile_label());
     let logged_style = move || username.get().map(|_| "").unwrap_or("display: none;");
     let anonymous_style = move || username.get().map(|_| "display: none;").unwrap_or("");
 
@@ -50,7 +45,7 @@ pub(crate) fn NavItems(
             <A class="nav-link".to_string() href="/settings"><i class="ion-gear-a"></i>" Settings"</A>
         </li>
         <li class="nav-item" style=logged_style>
-            <A class="nav-link".to_string() href=profile_href><i class="ion-person"></i>{profile_label}</A>
+            <A class="nav-link".to_string() href=profile_href><i class="ion-person"></i>" "{profile_label}</A>
         </li>
         <li class="nav-item" style=logged_style>
             <ActionForm action=logout>

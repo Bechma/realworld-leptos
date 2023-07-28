@@ -20,6 +20,7 @@ pub fn App() -> impl IntoView {
         <Stylesheet href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css"/>
         <Stylesheet href="https://fonts.googleapis.com/css?family=Titillium+Web:700|Source+Serif+Pro:400,700|Merriweather+Sans:400,700|Source+Sans+Pro:400,300,600,700,300italic,400italic,600italic,700italic"/>
         <Stylesheet href="https://demo.productionready.io/main.css"/>
+        <Stylesheet href="/pkg/realworld-leptos.css"/>
 
         // sets the document title
         <Title text="Welcome to Leptos"/>
@@ -41,6 +42,7 @@ pub fn App() -> impl IntoView {
                     <Route path="/signup" view=move || view! { <Signup username=username/> }/>
                     <Route path="/settings" view=move || view! { <Settings logout=logout /> }/>
                     <Route path="/editor/:slug?" view=|| view! { <Editor/> }/>
+                    <Route path="/article/:slug" view=move || view! { <Article username=username/> }/>
                     <Route path="/profile/:user" view=move || view! { <Profile username=username/> }/>
                 </Routes>
             </main>
