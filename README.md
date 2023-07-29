@@ -5,8 +5,6 @@
 
 # Missing features
 
-- [ ] Fix Editor component when he receives a slug in the url
-- [ ] Do some general manual testing
 - [ ] Add some testing examples
 - [ ] Deployment(maybe in Docker)
 

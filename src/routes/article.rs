@@ -4,17 +4,17 @@ use leptos_router::*;
 
 use crate::components::ArticleMeta;
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Clone, Default)]
 pub struct ArticleResult {
-    article: crate::models::Article,
-    logged_user: Option<crate::models::User>,
+    pub(super) article: crate::models::Article,
+    pub(super) logged_user: Option<crate::models::User>,
 }
 
 #[server(GetArticleAction, "/api")]
 #[tracing::instrument]
 pub async fn get_article(slug: String) -> Result<ArticleResult, ServerFnError> {
     Ok(ArticleResult {
-        article: crate::models::Article::for_article_page(slug)
+        article: crate::models::Article::for_article(slug)
             .await
             .map_err(|x| {
                 let err = format!("Error while getting user_profile articles: {x:?}");

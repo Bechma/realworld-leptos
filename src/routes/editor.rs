@@ -6,7 +6,7 @@ use leptos_router::*;
 pub enum EditorResponse {
     ValidationError(String),
     UpdateError,
-    Success(String),
+    Successful(String),
 }
 
 #[cfg_attr(feature = "hydrate", allow(dead_code))]
@@ -131,7 +131,7 @@ pub async fn editor_action(
         Err(x) => return Ok(EditorResponse::ValidationError(x)),
     };
     match update_article(author, slug, article).await {
-        Ok(x) => Ok(EditorResponse::Success(x)),
+        Ok(x) => Ok(EditorResponse::Successful(x)),
         Err(x) => {
             tracing::error!("EDITOR ERROR: {}", x.to_string());
             Ok(EditorResponse::UpdateError)
@@ -142,85 +142,106 @@ pub async fn editor_action(
 #[tracing::instrument]
 #[component]
 pub fn Editor() -> impl IntoView {
-    let error = create_rw_signal(view! {<ul></ul>});
-
     let editor_server_action = create_server_action::<EditorAction>();
-    let result_of_call = editor_server_action.value();
+    let result = editor_server_action.value();
+    let error = move || {
+        result.with(|x| {
+            x.as_ref()
+                .map(|y| y.is_err() || !matches!(y, Ok(EditorResponse::Successful(_))))
+                .unwrap_or(true)
+        })
+    };
 
     let params = use_params_map();
-    let slug = params.get().get("slug").cloned().unwrap_or_default();
-
-    create_effect(move |_| {
-        if let Some(msg) = result_of_call.get() {
-            match msg {
-                Ok(EditorResponse::ValidationError(x)) => error.set(view! {
-                    <ul class="error-messages">
-                        <li>"Problem while validating: "{x}</li>
-                    </ul>
-                }),
-                Ok(EditorResponse::UpdateError) => error.set(view! {
-                    <ul class="error-messages">
-                        <li>"Error while updating the article, please, try again later"</li>
-                    </ul>
-                }),
-                Ok(EditorResponse::Success(x)) => {
-                    request_animation_frame(move || {
-                        use_navigate()(&format!("/article/{x}"), NavigateOptions::default())
-                            .unwrap();
-                    });
-                }
-                Err(x) => error.set(view! {
-                    <ul class="error-messages">
-                        <li>"Unexpected error: "{x.to_string()}</li>
-                    </ul>
-                }),
+    let article_res = create_resource(
+        move || params.get(),
+        |slug| async move {
+            if let Some(s) = slug.get("slug") {
+                super::get_article(s.to_string()).await
+            } else {
+                Ok(super::ArticleResult::default())
             }
-        }
-        tracing::debug!("Editor Effect!");
-    });
+        },
+    );
 
     view! {
         <Title text="Editor"/>
         <div class="editor-page">
             <div class="container page">
                 <div class="row">
-                    {error}
+                    <p class="text-xs-center"
+                        class:text-success=move || !error()
+                        class:error-messages=error
+                    >
+                        <strong>
+                            {move || result.with(|x| {
+                                let Some(x) = x else {
+                                    return "".into();
+                                };
+                                match x {
+                                    Ok(EditorResponse::ValidationError(x)) => {
+                                        format!("Problem while validating: {x}")
+                                    }
+                                    Ok(EditorResponse::UpdateError) => {
+                                        "Error while updating the article, please, try again later".into()
+                                    }
+                                    Ok(EditorResponse::Successful(x)) => {
+                                        let article_url = format!("/article/{x}");
+                                        request_animation_frame(move || {
+                                            use_navigate()(&article_url, NavigateOptions::default())
+                                                .unwrap();
+                                        });
+                                        "".into()
+                                    }
+                                    Err(x) => format!("Unexpected error: {x}"),
+                                }
+                            })}
+                        </strong>
+                    </p>
+
                     <div class="col-md-10 offset-md-1 col-xs-12">
                         <ActionForm action=editor_server_action on:submit=move |ev| {
                             let Ok(data) = EditorAction::from_event(&ev) else {
                                 return ev.prevent_default();
                             };
                             if let Err(x) = validate_article(data.title, data.description, data.body, data.tag_list) {
-                                error.set(view! {
-                                    <ul class="error-messages">
-                                        <li>"Problem while validating: "{format!("{x:?}")}</li>
-                                    </ul>
-                                });
+                                result.set(Some(Ok(EditorResponse::ValidationError(x.to_string()))));
                                 ev.prevent_default();
                             }
                         }>
-                            <fieldset>
-                                <fieldset class="form-group">
-                                    <input name="title" type="text" class="form-control form-control-lg"
-                                        placeholder="Article Title" />
-                                </fieldset>
-                                <fieldset class="form-group">
-                                    <input name="description" type="text" class="form-control"
-                                        placeholder="What's this article about?" />
-                                </fieldset>
-                                <fieldset class="form-group">
-                                    <textarea name="body" class="form-control" rows="8"
-                                        placeholder="Write your article (in markdown)"></textarea>
-                                </fieldset>
-                                <fieldset class="form-group">
-                                    <input name="tag_list" type="text" class="form-control"
-                                        placeholder="Enter tags(space separated)" />
-                                </fieldset>
-                                <input name="slug" type="hidden" value=slug />
-                                <button class="btn btn-lg pull-xs-right btn-primary" type="submit">
-                                    "Publish Article"
-                                </button>
-                            </fieldset>
+                        <Suspense fallback=move || view! {<p>"Loading Tags"</p> }>
+                            <ErrorBoundary fallback=|_| {
+                                view! { <p class="error-messages text-xs-center">"Something went wrong."</p>}
+                            }>
+                                {move || article_res.read().map(move |x| x.map(move |a| {
+                                    view! {
+                                        <fieldset>
+                                            <fieldset class="form-group">
+                                                <input name="title" type="text" class="form-control form-control-lg"
+                                                    placeholder="Article Title" value=a.article.title />
+                                            </fieldset>
+                                            <fieldset class="form-group">
+                                                <input name="description" type="text" class="form-control"
+                                                    placeholder="What's this article about?" value=a.article.description />
+                                            </fieldset>
+                                            <fieldset class="form-group">
+                                                <textarea name="body" class="form-control" rows="8"
+                                                    placeholder="Write your article (in markdown)"
+                                                    prop:value=a.article.body.unwrap_or_default()></textarea>
+                                            </fieldset>
+                                            <fieldset class="form-group">
+                                                <input name="tag_list" type="text" class="form-control"
+                                                    placeholder="Enter tags(space separated)" value=a.article.tag_list.join(" ") />
+                                            </fieldset>
+                                            <input name="slug" type="hidden" value=a.article.slug />
+                                            <button class="btn btn-lg pull-xs-right btn-primary" type="submit">
+                                                "Publish Article"
+                                            </button>
+                                        </fieldset>
+                                    }
+                                }))}
+                            </ErrorBoundary>
+                        </Suspense>
                         </ActionForm>
                     </div>
                 </div>

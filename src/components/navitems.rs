@@ -36,16 +36,16 @@ pub(crate) fn NavItems(
 
     view! {
         <li class="nav-item">
-            <A class="nav-link".to_string() href="/" exact=true><i class="ion-home"></i>" Home"</A>
+            <A class="nav-link" href="/" exact=true><i class="ion-home"></i>" Home"</A>
         </li>
         <li class="nav-item" style=logged_style>
-            <A class="nav-link".to_string() href="/editor"><i class="ion-compose"></i>" New Article"</A>
+            <A class="nav-link" href="/editor"><i class="ion-compose"></i>" New Article"</A>
         </li>
         <li class="nav-item" style=logged_style>
-            <A class="nav-link".to_string() href="/settings"><i class="ion-gear-a"></i>" Settings"</A>
+            <A class="nav-link" href="/settings"><i class="ion-gear-a"></i>" Settings"</A>
         </li>
         <li class="nav-item" style=logged_style>
-            <A class="nav-link".to_string() href=profile_href><i class="ion-person"></i>" "{profile_label}</A>
+            <A class="nav-link" href=profile_href><i class="ion-person"></i>" "{profile_label}</A>
         </li>
         <li class="nav-item" style=logged_style>
             <ActionForm action=logout>
@@ -55,10 +55,10 @@ pub(crate) fn NavItems(
             </ActionForm>
         </li>
         <li class="nav-item" style=anonymous_style>
-            <A class="nav-link".to_string() href="/signup"><i class="ion-plus-round"></i>" Sign up"</A>
+            <A class="nav-link" href="/signup"><i class="ion-plus-round"></i>" Sign up"</A>
         </li>
         <li class="nav-item" style=anonymous_style>
-            <A class="nav-link".to_string() href="/login"><i class="ion-log-in"></i>" Login"</A>
+            <A class="nav-link" href="/login"><i class="ion-log-in"></i>" Login"</A>
         </li>
     }
 }

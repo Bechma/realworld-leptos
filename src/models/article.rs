@@ -1,7 +1,7 @@
 use super::UserPreview;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Default)]
 pub struct Article {
     pub slug: String,
     pub title: String,
@@ -131,7 +131,7 @@ WHERE
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn for_article_page(slug: String) -> Result<Self, sqlx::Error> {
+    pub async fn for_article(slug: String) -> Result<Self, sqlx::Error> {
         let username = crate::auth::get_username();
         sqlx::query!(
             "

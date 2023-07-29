@@ -29,7 +29,7 @@ pub fn App() -> impl IntoView {
         <Router>
             <nav class="navbar navbar-light">
                 <div class="container">
-                    <A class="navbar-brand".to_string() href="/" exact=true>"conduit"</A>
+                    <A class="navbar-brand" href="/" exact=true>"conduit"</A>
                     <ul class="nav navbar-nav pull-xs-right">
                         <NavItems logout=logout username=username />
                     </ul>
