@@ -116,6 +116,7 @@ pub fn ArticleMeta(
                                 <i class="ion-compose"></i>" Edit article"
                             </A>
                             <ActionForm action=delete_a class="inline">
+                                <input type="hidden" name="slug" value=move || article.with(|x| x.slug.to_string()) />
                                 <button type="submit" class="btn btn-sm btn-outline-secondary">
                                     <i class="ion-trash-a"></i>" Delete article"
                                 </button>
@@ -136,10 +137,13 @@ pub async fn delete_article(slug: String) -> Result<(), ServerFnError> {
     let Some(logged_user) = crate::auth::get_username() else {
         return Err(ServerFnError::ServerError("you must be logged in".into()))
     };
+    let redirect_profile = format!("/profile/{logged_user}");
 
     crate::models::Article::delete(slug, logged_user)
         .await
-        .map(|_| ())
+        .map(move |_| {
+            leptos_axum::redirect(&redirect_profile);
+        })
         .map_err(|x| {
             let err = format!("Error while deleting an article: {x:?}");
             tracing::error!("{err}");

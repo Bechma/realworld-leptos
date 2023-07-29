@@ -1,26 +1,18 @@
-use crate::auth::{LoginAction, LoginMessages};
+use crate::auth::{LoginMessages, LoginSignal};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 
 #[component]
-pub fn Login(username: crate::auth::UsernameSignal) -> impl IntoView {
-    let login_server_action = create_server_action::<LoginAction>();
-
-    let result_of_call = login_server_action.value();
+pub fn Login(login: LoginSignal) -> impl IntoView {
+    let result_of_call = login.value();
 
     let error = move || {
         result_of_call.with(|msg| {
             msg.as_ref()
                 .map(|inner| match inner {
                     Ok(LoginMessages::Unsuccessful) => "Incorrect user or password",
-                    Ok(LoginMessages::Successful) => {
-                        username.set(crate::auth::get_username());
-                        request_animation_frame(move || {
-                            use_navigate()("/", NavigateOptions::default()).unwrap();
-                        });
-                        ""
-                    }
+                    Ok(LoginMessages::Successful) => "",
                     Err(_) => "There was a problem, try again later",
                 })
                 .unwrap_or_default()
@@ -39,7 +31,7 @@ pub fn Login(username: crate::auth::UsernameSignal) -> impl IntoView {
                             {error}
                         </p>
 
-                        <ActionForm action=login_server_action>
+                        <ActionForm action=login>
                             <fieldset class="form-group">
                                 <input name="username" class="form-control form-control-lg" type="text"
                                     placeholder="Your Username" />

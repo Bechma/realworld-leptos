@@ -1,27 +1,21 @@
-use crate::auth::{validate_signup, SignupAction, SignupResponse};
+use crate::auth::{validate_signup, SignupAction, SignupResponse, SignupSignal};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 
-#[tracing::instrument]
 #[component]
-pub fn Signup(username: crate::auth::UsernameSignal) -> impl IntoView {
-    let signup_server_action = create_server_action::<SignupAction>();
-    let result_of_call = signup_server_action.value();
+pub fn Signup(signup: SignupSignal) -> impl IntoView {
+    let result_of_call = signup.value();
 
     let error_cb = move || {
         result_of_call
             .get()
             .map(|msg| match msg {
                 Ok(SignupResponse::ValidationError(x)) => format!("Problem while validating: {x}"),
-                Ok(SignupResponse::CreateUserError(x)) => x,
-                Ok(SignupResponse::Success) => {
-                    username.set(crate::auth::get_username());
-                    request_animation_frame(move || {
-                        use_navigate()("/", NavigateOptions::default()).unwrap();
-                    });
-                    String::new()
+                Ok(SignupResponse::CreateUserError(x)) => {
+                    format!("Problem while creating user: {x}")
                 }
+                Ok(SignupResponse::Success) => String::new(),
                 Err(_) => "There was a problem, try again later".into(),
             })
             .unwrap_or_default()
@@ -42,7 +36,7 @@ pub fn Signup(username: crate::auth::UsernameSignal) -> impl IntoView {
                             {error_cb}
                         </p>
 
-                        <ActionForm action=signup_server_action on:submit=move |ev| {
+                        <ActionForm action=signup on:submit=move |ev| {
                             let Ok(data) = SignupAction::from_event(&ev) else {
                                 return ev.prevent_default();
                             };

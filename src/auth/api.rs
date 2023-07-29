@@ -1,8 +1,5 @@
 use leptos::*;
 
-pub type LogoutSignal = Action<LogoutAction, Result<(), ServerFnError>>;
-pub type UsernameSignal = RwSignal<Option<String>>;
-
 #[derive(serde::Deserialize, Clone, serde::Serialize)]
 pub enum SignupResponse {
     ValidationError(String),
@@ -33,6 +30,7 @@ pub async fn signup_action(
         Ok(user) => match user.insert().await {
             Ok(_) => {
                 crate::auth::set_username(username).await;
+                leptos_axum::redirect("/");
                 Ok(SignupResponse::Success)
             }
             Err(x) => {
@@ -76,7 +74,7 @@ pub async fn login_action(
         == username
     {
         crate::auth::set_username(username).await;
-        // leptos_axum::redirect(cx, "/"); // TODO remove when it doesn't provoke a full app reload
+        leptos_axum::redirect("/");
         Ok(LoginMessages::Successful)
     } else {
         let response_options = use_context::<leptos_axum::ResponseOptions>().unwrap();
@@ -94,6 +92,7 @@ pub async fn logout_action() -> Result<(), ServerFnError> {
         axum::http::HeaderValue::from_str(crate::auth::REMOVE_COOKIE)
             .expect("header value couldn't be set"),
     );
+    leptos_axum::redirect("/login");
     Ok(())
 }
 

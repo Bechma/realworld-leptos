@@ -105,19 +105,11 @@ pub fn Settings(logout: crate::auth::LogoutSignal) -> impl IntoView {
                     <div class="col-md-6 offset-md-3 col-xs-12">
                         <h1 class="text-xs-center">"Your Settings"</h1>
 
-                        <Suspense
-                            fallback=move || view!{<p>"Loading user settings"</p>}
-                        >
-                            <ErrorBoundary
-                                fallback=|_| {
-                                    view!{<p>"There was a problem while fetching settings, try again later"</p>}
-                                }
-                            >
+                        <Suspense fallback=move || view!{<p>"Loading user settings"</p>} >
+                            <ErrorBoundary fallback=|_| view!{<p>"There was a problem while fetching settings, try again later"</p>}>
                                 {move || {
                                     resource.with(move |x| {
-                                        x.clone().map(move |user| {
-                                            view!{<SettingsViewForm user />}
-                                        })
+                                        x.clone().map(move |user| view!{<SettingsViewForm user />})
                                     })
                                 }}
                             </ErrorBoundary>
@@ -178,31 +170,31 @@ fn SettingsViewForm(user: crate::models::User) -> impl IntoView {
                 ev.prevent_default();
             }
         }>
-        <fieldset>
-            <fieldset class="form-group">
-                <input name="image" value=user.image() class="form-control" type="text"
-                    placeholder="URL of profile picture" />
-            </fieldset>
-            <fieldset class="form-group">
-                <input disabled value=user.username() class="form-control form-control-lg" type="text"
-                    placeholder="Your Name" />
-            </fieldset>
-            <fieldset class="form-group">
-                <textarea name="bio" class="form-control form-control-lg" rows="8"
-                    placeholder="Short bio about you" prop:value=user.bio().unwrap_or_default()>
-                </textarea>
-            </fieldset>
-            <fieldset class="form-group">
-                <input name="email" value=user.email() class="form-control form-control-lg" type="text"
-                    placeholder="Email" />
-            </fieldset>
-            <fieldset class="form-group">
-                <input name="password" class="form-control form-control-lg" type="password"
-                    placeholder="New Password" />
-                <input name="confirm_password" class="form-control form-control-lg" type="password"
-                    placeholder="Confirm New Password" />
-            </fieldset>
-            <button class="btn btn-lg btn-primary pull-xs-right" type="submit">"Update Settings"</button>
+            <fieldset>
+                <fieldset class="form-group">
+                    <input name="image" value=user.image() class="form-control" type="text"
+                        placeholder="URL of profile picture" />
+                </fieldset>
+                <fieldset class="form-group">
+                    <input disabled value=user.username() class="form-control form-control-lg" type="text"
+                        placeholder="Your Name" />
+                </fieldset>
+                <fieldset class="form-group">
+                    <textarea name="bio" class="form-control form-control-lg" rows="8"
+                        placeholder="Short bio about you" prop:value=user.bio().unwrap_or_default()>
+                    </textarea>
+                </fieldset>
+                <fieldset class="form-group">
+                    <input name="email" value=user.email() class="form-control form-control-lg" type="text"
+                        placeholder="Email" />
+                </fieldset>
+                <fieldset class="form-group">
+                    <input name="password" class="form-control form-control-lg" type="password"
+                        placeholder="New Password" />
+                    <input name="confirm_password" class="form-control form-control-lg" type="password"
+                        placeholder="Confirm New Password" />
+                </fieldset>
+                <button class="btn btn-lg btn-primary pull-xs-right" type="submit">"Update Settings"</button>
             </fieldset>
         </ActionForm>
     }

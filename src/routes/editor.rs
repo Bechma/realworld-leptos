@@ -131,7 +131,10 @@ pub async fn editor_action(
         Err(x) => return Ok(EditorResponse::ValidationError(x)),
     };
     match update_article(author, slug, article).await {
-        Ok(x) => Ok(EditorResponse::Successful(x)),
+        Ok(x) => {
+            leptos_axum::redirect(&format!("/article/{x}"));
+            Ok(EditorResponse::Successful(x))
+        }
         Err(x) => {
             tracing::error!("EDITOR ERROR: {}", x.to_string());
             Ok(EditorResponse::UpdateError)
@@ -185,12 +188,7 @@ pub fn Editor() -> impl IntoView {
                                     Ok(EditorResponse::UpdateError) => {
                                         "Error while updating the article, please, try again later".into()
                                     }
-                                    Ok(EditorResponse::Successful(x)) => {
-                                        let article_url = format!("/article/{x}");
-                                        request_animation_frame(move || {
-                                            use_navigate()(&article_url, NavigateOptions::default())
-                                                .unwrap();
-                                        });
+                                    Ok(EditorResponse::Successful(_)) => {
                                         "".into()
                                     }
                                     Err(x) => format!("Unexpected error: {x}"),

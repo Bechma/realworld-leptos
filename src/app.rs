@@ -12,7 +12,20 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     let username = create_rw_signal(crate::auth::get_username());
-    let logout = create_server_action::<crate::auth::LogoutAction>();
+
+    let logout: crate::auth::LogoutSignal = create_server_action::<crate::auth::LogoutAction>();
+    let login: crate::auth::LoginSignal = create_server_action::<crate::auth::LoginAction>();
+    let signup: crate::auth::SignupSignal = create_server_action::<crate::auth::SignupAction>();
+
+    let (logout_version, login_version, signup_version) =
+        (logout.version(), login.version(), signup.version());
+
+    create_effect(move |_| {
+        logout_version.track();
+        login_version.track();
+        signup_version.track();
+        username.set(crate::auth::get_username());
+    });
 
     view! {
         // injects a stylesheet into the document <head>
@@ -31,19 +44,19 @@ pub fn App() -> impl IntoView {
                 <div class="container">
                     <A class="navbar-brand" href="/" exact=true>"conduit"</A>
                     <ul class="nav navbar-nav pull-xs-right">
-                        <NavItems logout=logout username=username />
+                        <NavItems logout username />
                     </ul>
                 </div>
             </nav>
             <main>
                 <Routes>
-                    <Route path="/" view=move || view! { <HomePage username=username/> }/>
-                    <Route path="/login" view=move || view! { <Login username=username/> }/>
-                    <Route path="/signup" view=move || view! { <Signup username=username/> }/>
-                    <Route path="/settings" view=move || view! { <Settings logout=logout /> }/>
+                    <Route path="/" view=move || view! { <HomePage username/> }/>
+                    <Route path="/login" view=move || view! { <Login login/> }/>
+                    <Route path="/signup" view=move || view! { <Signup signup/> }/>
+                    <Route path="/settings" view=move || view! { <Settings logout /> }/>
                     <Route path="/editor/:slug?" view=|| view! { <Editor/> }/>
-                    <Route path="/article/:slug" view=move || view! { <Article username=username/> }/>
-                    <Route path="/profile/:user" view=move || view! { <Profile username=username/> }/>
+                    <Route path="/article/:slug" view=move || view! { <Article username/> }/>
+                    <Route path="/profile/:user" view=move || view! { <Profile username/> }/>
                 </Routes>
             </main>
             <footer>
