@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nUPDATE Users SET\n    image=$2,\n    bio=$3,\n    email=$4,\n    password=CASE WHEN $5 THEN crypt($6, gen_salt('bf')) ELSE password END\nWHERE username=$1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "77396dceeed414ae8789f8ec409271110cac715ade1bd36921f2c8021c9db0d4"
+}

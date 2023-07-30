@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM Comments WHERE id=$1 and username=$2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "076e1562ebde1e5f0feb02eec26900d652b9a0dd3733072e035606bbf0738de0"
+}

@@ -17,7 +17,6 @@ pub struct TokenClaims {
                     // sub: String,         // Optional. Subject (whom token refers to)
 }
 
-pub(crate) static JWT_SECRET: &[u8] = b"hello darkness my old friend";
 pub(crate) static REMOVE_COOKIE: &str = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
 pub async fn auth_middleware<B>(req: Request<B>, next: axum::middleware::Next<B>) -> Response {
@@ -62,9 +61,10 @@ async fn redirect<B>(req: Request<B>, next: axum::middleware::Next<B>) -> Respon
 pub(crate) fn decode_token(
     token: &str,
 ) -> Result<jsonwebtoken::TokenData<TokenClaims>, jsonwebtoken::errors::Error> {
+    let secret = std::env!("JWT_SECRET");
     decode::<TokenClaims>(
         token,
-        &DecodingKey::from_secret(JWT_SECRET),
+        &DecodingKey::from_secret(secret.as_bytes()),
         &Validation::default(),
     )
 }
@@ -97,10 +97,11 @@ pub async fn set_username(username: String) -> bool {
             sub: username,
             exp: (sqlx::types::chrono::Utc::now().timestamp() as usize) + 3_600_000,
         };
+        let secret = std::env!("JWT_SECRET");
         let token = jsonwebtoken::encode(
             &jsonwebtoken::Header::default(),
             &claims,
-            &jsonwebtoken::EncodingKey::from_secret(crate::auth::JWT_SECRET),
+            &jsonwebtoken::EncodingKey::from_secret(secret.as_bytes()),
         )
         .unwrap();
         res.insert_header(

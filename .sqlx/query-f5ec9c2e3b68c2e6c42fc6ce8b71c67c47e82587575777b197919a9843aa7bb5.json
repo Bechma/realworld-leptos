@@ -1,0 +1,78 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT \n    a.slug,\n    a.title,\n    a.description,\n    a.created_at,\n    u.username,\n    u.image,\n    (SELECT COUNT(*) FROM FavArticles WHERE article=a.slug) as favorites_count,\n    EXISTS(SELECT 1 FROM FavArticles WHERE article=a.slug and username=$2) as fav,\n    EXISTS(SELECT 1 FROM Follows WHERE follower=$2 and influencer=a.author) as following,\n    (SELECT string_agg(tag, ' ') FROM ArticleTags WHERE article = a.slug) as tag_list\nFROM Articles as a\n    JOIN Users as u ON u.username = a.author\nWHERE\n    CASE WHEN $3 THEN\n        EXISTS(SELECT fa.article, fa.username FROM FavArticles as fa WHERE fa.article=a.slug AND fa.username=$1)\n    ELSE a.author = $1\n    END",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "slug",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "image",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "favorites_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "fav",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "following",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "tag_list",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "f5ec9c2e3b68c2e6c42fc6ce8b71c67c47e82587575777b197919a9843aa7bb5"
+}

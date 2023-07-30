@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM Follows WHERE follower=$1 and influencer=$2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "follower",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "influencer",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "5d537ebae9141f6dcd5c7fd397f4b8aee2737bd8754f1764171ec81c20ae5509"
+}

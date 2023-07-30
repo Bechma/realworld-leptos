@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM FavArticles WHERE article=$1 and username=$2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a3e3e0e4f80ae83ac4e775c9177a4e99eac041f5d734d44f329f5f243e5a41ca"
+}

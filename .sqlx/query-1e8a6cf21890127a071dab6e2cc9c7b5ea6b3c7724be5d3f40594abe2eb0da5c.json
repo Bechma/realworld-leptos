@@ -1,0 +1,80 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT \n    a.slug,\n    a.title,\n    a.description,\n    a.created_at,\n    (SELECT COUNT(*) FROM FavArticles WHERE article=a.slug) as favorites_count,\n    u.username, u.image,\n    EXISTS(SELECT 1 FROM FavArticles WHERE article=a.slug and username=$5) as fav,\n    EXISTS(SELECT 1 FROM Follows WHERE follower=$5 and influencer=u.username) as following,\n    (SELECT string_agg(tag, ' ') FROM ArticleTags WHERE article = a.slug) as tag_list\nFROM Articles as a\n    JOIN Users as u ON a.author = u.username\nWHERE\n    CASE WHEN $3!='' THEN a.slug in (SELECT distinct article FROM ArticleTags WHERE tag=$3)\n    ELSE 1=1\n    END\n    AND\n    CASE WHEN $4 THEN u.username in (SELECT influencer FROM Follows WHERE follower=$5)\n    ELSE 1=1\n    END\nORDER BY a.created_at desc\nLIMIT $1 OFFSET $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "slug",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "favorites_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "image",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "fav",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "following",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "tag_list",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      false,
+      true,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "1e8a6cf21890127a071dab6e2cc9c7b5ea6b3c7724be5d3f40594abe2eb0da5c"
+}
