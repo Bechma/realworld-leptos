@@ -3,7 +3,7 @@ static DB: std::sync::OnceLock<sqlx::PgPool> = std::sync::OnceLock::new();
 async fn create_pool() -> sqlx::PgPool {
     let database_url = std::env::var("DATABASE_URL").expect("no database url specify");
     let pool = sqlx::postgres::PgPoolOptions::new()
-        .max_connections(20)
+        .max_connections(4)
         .connect(database_url.as_str())
         .await
         .expect("could not connect to database_url");
