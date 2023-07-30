@@ -29,4 +29,5 @@ ENV LEPTOS_SITE_PKG_DIR="pkg"
 
 EXPOSE 8080
 
+# Remember to set JWT_SECRET and DATABASE_URL environmental variables
 CMD ["/app/realworld-leptos"]

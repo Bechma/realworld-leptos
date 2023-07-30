@@ -1,12 +1,10 @@
-<picture>
-    <source srcset="https://raw.githubusercontent.com/leptos-rs/leptos/main/docs/logos/Leptos_logo_Solid_White.svg" media="(prefers-color-scheme: dark)">
-    <img src="https://raw.githubusercontent.com/leptos-rs/leptos/main/docs/logos/Leptos_logo_RGB.svg" alt="Leptos Logo">
-</picture>
+# Realworld app with Leptos + Axum + Postgres
 
-# Missing features
+You can check it online in https://realworld-leptos.onrender.com (it might take a couple of seconds to startup, we're in the free tier).
 
-- [ ] Add some testing examples
-- [ ] Deployment(maybe in Docker)
+### WIP feature
+
+- Add some test cases
 
 # Requirements
 
@@ -24,7 +22,7 @@ This is an utility to easily compile either backend and frontend at the same tim
 
 `cargo install cargo-leptos`
 
-# How to run this project
+# How to run this project locally
 
 First, deploy a local postgres database, maybe docker is the fastest solution:
 
@@ -39,12 +37,10 @@ export DATABASE_URL=postgres://postgres:postgres@localhost/postgres
 cargo leptos watch
 ```
 
-## Installing Additional Tools
+# Run it with docker compose
 
-By default, `cargo-leptos` uses `nightly` Rust, `cargo-generate`, and `sass`. If you run into any trouble, you may need to install one or more of these tools.
+You can also run the application in release mode using docker compose:
 
-1. `rustup toolchain install nightly --allow-downgrade` - make sure you have Rust nightly
-2. `rustup default nightly` - setup nightly as default, or you can use rust-toolchain file later on
-3. `rustup target add wasm32-unknown-unknown` - add the ability to compile Rust to WebAssembly
-4. `cargo install cargo-generate` - install `cargo-generate` binary (should be installed automatically in future)
-5. `npm install -g sass` - install `dart-sass` (should be optional in future
+`docker compose up`
+
+And navigate to http://localhost:8080/
