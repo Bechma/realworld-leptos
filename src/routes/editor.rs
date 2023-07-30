@@ -77,7 +77,19 @@ async fn update_article(
         )
     } else {
         // The slug is derived from the title
-        let slug = article.title.to_lowercase().replace(' ', "-");
+        let slug = article
+            .title
+            .chars()
+            .map(|c| {
+                let c = c.to_ascii_lowercase();
+                if c == ' ' {
+                    '-'
+                } else {
+                    c
+                }
+            })
+            .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
+            .collect::<String>();
         (sqlx::query!(
             "INSERT INTO Articles(slug, title, description, body, author) VALUES ($1, $2, $3, $4, $5)",
             slug,

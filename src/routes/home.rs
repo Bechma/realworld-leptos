@@ -121,9 +121,9 @@ pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
                                 <li class="nav-item pull-xs-right">
                                     <div style="display: inline-block;">
                                         "Articles to display | "
-                                        <a href=move || pagination.get().unwrap_or_default().set_amount(1).to_string() class="btn btn-primary">"1"</a>
-                                        <a href=move || pagination.get().unwrap_or_default().set_amount(20).to_string() class="btn btn-primary">"20"</a>
-                                        <a href=move || pagination.get().unwrap_or_default().set_amount(50).to_string() class="btn btn-primary">"50"</a>
+                                        <a href=move || pagination.get().unwrap_or_default().reset_page().set_amount(1).to_string() class="btn btn-primary">"1"</a>
+                                        <a href=move || pagination.get().unwrap_or_default().reset_page().set_amount(20).to_string() class="btn btn-primary">"20"</a>
+                                        <a href=move || pagination.get().unwrap_or_default().reset_page().set_amount(50).to_string() class="btn btn-primary">"50"</a>
                                     </div>
                                 </li>
                             </ul>

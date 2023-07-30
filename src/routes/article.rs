@@ -10,7 +10,7 @@ pub struct ArticleResult {
     pub(super) logged_user: Option<crate::models::User>,
 }
 
-#[server(GetArticleAction, "/api")]
+#[server(GetArticleAction, "/api", "GetJson")]
 #[tracing::instrument]
 pub async fn get_article(slug: String) -> Result<ArticleResult, ServerFnError> {
     Ok(ArticleResult {
@@ -121,7 +121,7 @@ pub async fn post_comment(slug: String, body: String) -> Result<(), ServerFnErro
         })
 }
 
-#[server(GetCommentsAction, "/api")]
+#[server(GetCommentsAction, "/api", "GetJson")]
 #[tracing::instrument]
 pub async fn get_comments(slug: String) -> Result<Vec<crate::models::Comment>, ServerFnError> {
     crate::models::Comment::get_all(slug).await.map_err(|x| {
@@ -156,9 +156,13 @@ fn CommentSection(
 ) -> impl IntoView {
     let comments_action = create_server_action::<PostCommentAction>();
     let result = comments_action.version();
+    let reset_comment = create_rw_signal("");
     let comments = create_resource(
         move || (result.get(), article.with(|a| a.slug.to_string())),
-        |(_, a)| async { get_comments(a).await },
+        move |(_, a)| async move {
+            reset_comment.set("");
+            get_comments(a).await
+        },
     );
 
     view! {
@@ -167,7 +171,7 @@ fn CommentSection(
                 <ActionForm action=comments_action class="card comment-form">
                     <input name="slug" type="hidden" value=move || article.with(|x| x.slug.to_string()) />
                     <div class="card-block">
-                        <textarea name="body" class="form-control" placeholder="Write a comment..." rows="3"></textarea>
+                        <textarea name="body" prop:value=move || reset_comment.get() class="form-control" placeholder="Write a comment..." rows="3"></textarea>
                     </div>
                     <div class="card-footer">
                         <img src=move || user.with(|x| x.as_ref().map(|y| y.image()).unwrap_or_default()) class="comment-author-img" />
@@ -177,7 +181,7 @@ fn CommentSection(
                     </div>
                 </ActionForm>
             </Show>
-            <Suspense fallback=move || view! {<p>"Loading Tags"</p> }>
+            <Suspense fallback=move || view! {<p>"Loading Comments from the article"</p> }>
                 <ErrorBoundary fallback=|_| {
                     view! { <p class="error-messages text-xs-center">"Something went wrong."</p>}
                 }>

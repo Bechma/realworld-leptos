@@ -31,7 +31,8 @@ impl Comment {
             "
         SELECT c.*, u.image FROM Comments as c
             JOIN Users as u ON u.username=c.username
-        WHERE c.article=$1",
+        WHERE c.article=$1
+        ORDER BY c.created_at",
             article
         )
         .map(|x| Self {

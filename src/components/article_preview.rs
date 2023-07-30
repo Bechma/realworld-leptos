@@ -12,7 +12,6 @@ pub fn ArticlePreviewList<S: 'static + std::clone::Clone>(
     username: crate::auth::UsernameSignal,
     articles: ArticlesType<S>,
 ) -> impl IntoView {
-    // TODO: When the user logouts in the main screen, there's a request to articles... WHY?
     let articles_view = move || {
         articles.with(move |x| {
             x.clone().map(move |res| {
@@ -48,7 +47,6 @@ fn ArticlePreview(username: crate::auth::UsernameSignal, article: ArticleSignal)
     view! {
         <div class="article-preview">
             <ArticleMeta username=username article=article is_preview=true />
-            // {{self::metadata(article=article, is_preview=true)}}
             <A href=move || format!("/article/{}", article.with(|x| x.slug.clone())) class="preview-link">
                 <h1>{move || article.with(|x| x.title.to_string())}</h1>
                 <p>{move || article.with(|x| x.description.to_string())}</p>
