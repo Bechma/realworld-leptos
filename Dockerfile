@@ -8,11 +8,7 @@ WORKDIR /app
 ENV JWT_SECRET="replaceme when ran in prod"
 COPY . .
 
-RUN --mount=type=cache,target=/app/target \
-    --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=/root/.cache \
-    sed -i 's/env = "DEV"/env = "PROD"/' ./Cargo.toml &&\
+RUN sed -i 's/env = "DEV"/env = "PROD"/' ./Cargo.toml &&\
     cargo leptos build -r -vv
 
 FROM debian:bookworm-slim as runner
