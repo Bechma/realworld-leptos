@@ -1,0 +1,13 @@
+FROM camos/realworld-leptos:0.1.0
+# This file is required as render.com has problem with multi-stage builds:
+# COPY --from=builder /app/target/site /app/site
+#
+# What I do to solve this issue is:
+# - build locally the container with the Dockerfile
+# - push the container to my docker user
+# - I point render to build this file instead of the main Dockerfile
+
+EXPOSE 8080
+
+# Remember to set JWT_SECRET and DATABASE_URL environmental variables
+CMD [ "./realworld-leptos" ]

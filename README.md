@@ -1,10 +1,6 @@
 # Realworld app with Leptos + Axum + Postgres
 
-You can check it online in https://realworld-leptos.onrender.com (it might take a couple of seconds to startup, we're in the free tier).
-
-### WIP feature
-
-- Add some test cases
+You can check it online in https://realworld-leptos.onrender.com (it might take a couple of seconds to startup).
 
 # Requirements
 
@@ -37,6 +33,21 @@ export DATABASE_URL=postgres://postgres:postgres@localhost/postgres
 cargo leptos watch
 ```
 
+# How to test this project
+
+You will need to have a local database, in order to execute end2end testing.
+
+```
+cd end2end/
+npm i
+npx playwright install
+cd ../
+cargo leptos end-to-end
+```
+
+You will need to install the playright dependency in the end2end directory and
+install the playwright drivers. With cargo-leptos the tests will be executed.
+
 # Run it with docker compose
 
 You can also run the application in release mode using docker compose:
@@ -44,3 +55,9 @@ You can also run the application in release mode using docker compose:
 `docker compose up`
 
 And navigate to http://localhost:8080/
+
+# Details about deployment
+
+The deployment has been done thanks to the free tier of:
+- https://render.io/ for the fullstack application
+- https://www.elephantsql.com/ for the database
