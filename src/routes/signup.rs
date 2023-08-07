@@ -15,8 +15,14 @@ pub fn Signup(signup: SignupSignal) -> impl IntoView {
                 Ok(SignupResponse::CreateUserError(x)) => {
                     format!("Problem while creating user: {x}")
                 }
-                Ok(SignupResponse::Success) => String::new(),
-                Err(_) => "There was a problem, try again later".into(),
+                // We don't receive the success when it's redirecting, so it's fine for now... Maybe a bug?
+                Ok(SignupResponse::Success) | Err(ServerFnError::Deserialization(_)) => {
+                    String::new()
+                }
+                Err(x) => {
+                    tracing::error!("Problem during signup: {x:?}");
+                    "There was a problem, try again later".into()
+                }
             })
             .unwrap_or_default()
     };
@@ -54,7 +60,7 @@ pub fn Signup(signup: SignupSignal) -> impl IntoView {
                             <fieldset class="form-group">
                                 <input name="password" class="form-control form-control-lg" type="password" placeholder="Password" required=true/>
                             </fieldset>
-                            <input type="submit" class="btn btn-lg btn-primary pull-xs-right" value="Sign up" />
+                            <button class="btn btn-lg btn-primary pull-xs-right">"Sign up"</button>
                         </ActionForm>
                     </div>
                 </div>

@@ -1,6 +1,0 @@
-FROM camos/realworld-leptos:0.1.0
-
-EXPOSE 8080
-
-# Remember to set JWT_SECRET and DATABASE_URL environmental variables
-CMD [ "./realworld-leptos" ]

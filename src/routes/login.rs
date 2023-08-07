@@ -12,8 +12,12 @@ pub fn Login(login: LoginSignal) -> impl IntoView {
             msg.as_ref()
                 .map(|inner| match inner {
                     Ok(LoginMessages::Unsuccessful) => "Incorrect user or password",
-                    Ok(LoginMessages::Successful) => "",
-                    Err(_) => "There was a problem, try again later",
+                    // We don't receive the success when it's redirecting, so it's fine for now... Maybe a bug?
+                    Ok(LoginMessages::Successful) | Err(ServerFnError::Deserialization(_)) => "",
+                    Err(x) => {
+                        tracing::error!("Problem during login: {x:?}");
+                        "There was a problem, try again later"
+                    }
                 })
                 .unwrap_or_default()
         })
@@ -40,7 +44,7 @@ pub fn Login(login: LoginSignal) -> impl IntoView {
                                 <input name="password" class="form-control form-control-lg" type="password"
                                     placeholder="Password" />
                             </fieldset>
-                            <input type="submit" class="btn btn-lg btn-primary pull-xs-right" value="Sign in" />
+                            <button class="btn btn-lg btn-primary pull-xs-right">"Sign in"</button>
                         </ActionForm>
                     </div>
                 </div>

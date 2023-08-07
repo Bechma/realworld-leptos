@@ -24,7 +24,7 @@ pub(crate) fn NavItems(logout: LogoutSignal, username: UsernameSignal) -> impl I
                 </li>
                 <li class="nav-item">
                     <ActionForm action=logout>
-                        <button type="submit" class="nav-link" style="background: none; border: none;">
+                        <button class="nav-link" style="background: none; border: none;">
                             <i class="ion-log-out"></i>" Logout"
                         </button>
                     </ActionForm>
