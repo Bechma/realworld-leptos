@@ -18,6 +18,11 @@ struct ArticleUpdate {
     tag_list: std::collections::HashSet<String>,
 }
 
+const TITLE_MIN_LENGTH: usize = 4;
+const DESCRIPTION_MIN_LENGTH: usize = 4;
+const BODY_MIN_LENGTH: usize = 10;
+
+#[cfg(feature = "ssr")]
 #[tracing::instrument]
 fn validate_article(
     title: String,
@@ -25,15 +30,15 @@ fn validate_article(
     body: String,
     tag_list: String,
 ) -> Result<ArticleUpdate, String> {
-    if title.len() < 4 {
+    if title.len() < TITLE_MIN_LENGTH {
         return Err("You need to provide a title with at least 4 characters".into());
     }
 
-    if description.len() < 4 {
+    if description.len() < DESCRIPTION_MIN_LENGTH {
         return Err("You need to provide a description with at least 4 characters".into());
     }
 
-    if body.len() < 10 {
+    if body.len() < BODY_MIN_LENGTH {
         return Err("You need to provide a body with at least 10 characters".into());
     }
 
@@ -191,7 +196,7 @@ pub fn Editor() -> impl IntoView {
                         <strong>
                             {move || result.with(|x| {
                                 let Some(x) = x else {
-                                    return "".into();
+                                    return String::new();
                                 };
                                 match x {
                                     Ok(EditorResponse::ValidationError(x)) => {
@@ -201,7 +206,7 @@ pub fn Editor() -> impl IntoView {
                                         "Error while updating the article, please, try again later".into()
                                     }
                                     Ok(EditorResponse::Successful(_)) => {
-                                        "".into()
+                                        String::new()
                                     }
                                     Err(x) => format!("Unexpected error: {x}"),
                                 }
@@ -210,15 +215,7 @@ pub fn Editor() -> impl IntoView {
                     </p>
 
                     <div class="col-md-10 offset-md-1 col-xs-12">
-                        <ActionForm action=editor_server_action on:submit=move |ev| {
-                            let Ok(data) = EditorAction::from_event(&ev) else {
-                                return ev.prevent_default();
-                            };
-                            if let Err(x) = validate_article(data.title, data.description, data.body, data.tag_list) {
-                                result.set(Some(Ok(EditorResponse::ValidationError(x.to_string()))));
-                                ev.prevent_default();
-                            }
-                        }>
+                        <ActionForm action=editor_server_action>
                         <Suspense fallback=move || view! {<p>"Loading Tags"</p> }>
                             <ErrorBoundary fallback=|_| {
                                 view! { <p class="error-messages text-xs-center">"Something went wrong."</p>}
@@ -227,16 +224,16 @@ pub fn Editor() -> impl IntoView {
                                     view! {
                                         <fieldset>
                                             <fieldset class="form-group">
-                                                <input name="title" type="text" class="form-control form-control-lg"
+                                                <input name="title" type="text" class="form-control form-control-lg" minlength=TITLE_MIN_LENGTH
                                                     placeholder="Article Title" value=a.article.title />
                                             </fieldset>
                                             <fieldset class="form-group">
-                                                <input name="description" type="text" class="form-control"
+                                                <input name="description" type="text" class="form-control" minlength=DESCRIPTION_MIN_LENGTH
                                                     placeholder="What's this article about?" value=a.article.description />
                                             </fieldset>
                                             <fieldset class="form-group">
                                                 <textarea name="body" class="form-control" rows="8"
-                                                    placeholder="Write your article (in markdown)"
+                                                    placeholder="Write your article (in markdown)" minlength=BODY_MIN_LENGTH
                                                     prop:value=a.article.body.unwrap_or_default()></textarea>
                                             </fieldset>
                                             <fieldset class="form-group">
