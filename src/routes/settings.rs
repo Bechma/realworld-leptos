@@ -22,7 +22,7 @@ pub async fn settings_update(
 ) -> Result<SettingsUpdateError, ServerFnError> {
     let user = get_user().await?;
     let username = user.username();
-    let user = match update_user_validation(user, image, bio, email, password, confirm_password) {
+    let user = match update_user_validation(user, image, bio, email, password, &confirm_password) {
         Ok(x) => x,
         Err(x) => return Ok(x),
     };
@@ -45,7 +45,7 @@ fn update_user_validation(
     bio: String,
     email: String,
     password: String,
-    confirm_password: String,
+    confirm_password: &str,
 ) -> Result<crate::models::User, SettingsUpdateError> {
     if !password.is_empty() {
         if password != confirm_password {
@@ -131,9 +131,9 @@ fn SettingsViewForm(user: crate::models::User) -> impl IntoView {
     let result = settings_server_action.value();
     let error = move || {
         result.with(|x| {
-            x.as_ref()
-                .map(|y| y.is_err() || !matches!(y, Ok(SettingsUpdateError::Successful)))
-                .unwrap_or(true)
+            x.as_ref().map_or(true, |y| {
+                y.is_err() || !matches!(y, Ok(SettingsUpdateError::Successful))
+            })
         })
     };
 
@@ -165,7 +165,7 @@ fn SettingsViewForm(user: crate::models::User) -> impl IntoView {
             let Ok(data) = SettingsUpdateAction::from_event(&ev) else {
                 return ev.prevent_default();
             };
-            if let Err(x) = update_user_validation(crate::models::User::default(), data.image, data.bio, data.email, data.password, data.confirm_password) {
+            if let Err(x) = update_user_validation(crate::models::User::default(), data.image, data.bio, data.email, data.password, &data.confirm_password) {
                 result.set(Some(Ok(x)));
                 ev.prevent_default();
             }

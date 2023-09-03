@@ -166,9 +166,9 @@ pub fn Editor() -> impl IntoView {
     let result = editor_server_action.value();
     let error = move || {
         result.with(|x| {
-            x.as_ref()
-                .map(|y| y.is_err() || !matches!(y, Ok(EditorResponse::Successful(_))))
-                .unwrap_or(true)
+            x.as_ref().map_or(true, |y| {
+                y.is_err() || !matches!(y, Ok(EditorResponse::Successful(_)))
+            })
         })
     };
 

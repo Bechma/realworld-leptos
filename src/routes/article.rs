@@ -174,7 +174,7 @@ fn CommentSection(
                         <textarea name="body" prop:value=move || reset_comment.get() class="form-control" placeholder="Write a comment..." rows="3"></textarea>
                     </div>
                     <div class="card-footer">
-                        <img src=move || user.with(|x| x.as_ref().map(|y| y.image()).unwrap_or_default()) class="comment-author-img" />
+                        <img src=move || user.with(|x| x.as_ref().map(crate::models::User::image).unwrap_or_default()) class="comment-author-img" />
                         <button class="btn btn-sm btn-primary" type="submit">
                             "Post Comment"
                         </button>

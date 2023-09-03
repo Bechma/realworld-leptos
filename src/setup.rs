@@ -2,6 +2,9 @@ use crate::app::App;
 use leptos::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 
+/// # Panics
+///
+/// Will panic if anything is badly setup from database, or web server
 pub async fn init_app(configuration_path: Option<&str>) {
     tracing_subscriber::fmt()
         .with_level(true)
