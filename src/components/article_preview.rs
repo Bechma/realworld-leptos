@@ -17,9 +17,9 @@ pub fn ArticlePreviewList<S: 'static + std::clone::Clone>(
             x.clone().map(move |res| {
                 view! {
                     <For
-                        each=move || res.clone().into_iter().enumerate()
+                        each=move || res.clone().unwrap_or_default().into_iter().enumerate()
                         key=|(i, _)| *i
-                        view=move |(_, article): (usize, crate::models::Article)| {
+                        children=move |(_, article): (usize, crate::models::Article)| {
                             let article = create_rw_signal(article);
                             view! {
                                 <ArticlePreview article=article username=username />
@@ -60,7 +60,7 @@ fn ArticlePreview(username: crate::auth::UsernameSignal, article: ArticleSignal)
                         <For
                             each=move || article.with(|x| x.tag_list.clone().into_iter().enumerate())
                             key=|(i, _)| *i
-                            view=move |(_, tag): (usize, String)| {
+                            children=move |(_, tag): (usize, String)| {
                                 view!{<li class="tag-default tag-pill tag-outline">{tag}</li>}
                             }
                         />
@@ -133,7 +133,7 @@ pub fn ArticleMeta(
 #[tracing::instrument]
 pub async fn delete_article(slug: String) -> Result<(), ServerFnError> {
     let Some(logged_user) = crate::auth::get_username() else {
-        return Err(ServerFnError::ServerError("you must be logged in".into()))
+        return Err(ServerFnError::ServerError("you must be logged in".into()));
     };
     let redirect_profile = format!("/profile/{logged_user}");
 

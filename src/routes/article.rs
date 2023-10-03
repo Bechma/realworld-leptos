@@ -44,7 +44,7 @@ pub fn Article(username: crate::auth::UsernameSignal) -> impl IntoView {
                 view! { <p class="error-messages text-xs-center">"Something went wrong, please try again later."</p>}
             }>
                 {move || {
-                    article.read().map(move |x| {
+                    article.get().map(move |x| {
                         x.map(move |article_result| {
                             title.set(article_result.article.slug.to_string());
                             view! {
@@ -84,7 +84,7 @@ fn ArticlePage(username: crate::auth::UsernameSignal, result: ArticleResult) -> 
                     <For
                         each=move || tag_list.clone().into_iter().enumerate()
                         key=|(i, _)| *i
-                        view=|(_, a)| {view!{<li class="tag-default tag-pill tag-outline">{a}</li>}}
+                        children=|(_, a)| {view!{<li class="tag-default tag-pill tag-outline">{a}</li>}}
                     />
                 </ul>
 
@@ -108,7 +108,7 @@ fn ArticlePage(username: crate::auth::UsernameSignal, result: ArticleResult) -> 
 #[tracing::instrument]
 pub async fn post_comment(slug: String, body: String) -> Result<(), ServerFnError> {
     let Some(logged_user) = crate::auth::get_username() else {
-        return Err(ServerFnError::ServerError("you must be logged in".into()))
+        return Err(ServerFnError::ServerError("you must be logged in".into()));
     };
 
     crate::models::Comment::insert(slug, logged_user, body)
@@ -135,7 +135,7 @@ pub async fn get_comments(slug: String) -> Result<Vec<crate::models::Comment>, S
 #[tracing::instrument]
 pub async fn delete_comment(id: i32) -> Result<(), ServerFnError> {
     let Some(logged_user) = crate::auth::get_username() else {
-        return Err(ServerFnError::ServerError("you must be logged in".into()))
+        return Err(ServerFnError::ServerError("you must be logged in".into()));
     };
 
     crate::models::Comment::delete(id, logged_user)
@@ -185,11 +185,11 @@ fn CommentSection(
                 <ErrorBoundary fallback=|_| {
                     view! { <p class="error-messages text-xs-center">"Something went wrong."</p>}
                 }>
-                    {move || comments.read().map(move |x| x.map(move |c| {
+                    {move || comments.get().map(move |x| x.map(move |c| {
                         view! {
                             <For each=move || c.clone().into_iter().enumerate()
                                 key=|(i, _)| *i
-                                view=move |(_, comment)| {
+                                children=move |(_, comment)| {
                                     let comment = create_rw_signal(comment);
                                     view!{<Comment username comment comments />}
                                 }/>

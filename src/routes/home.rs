@@ -154,7 +154,7 @@ pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
                             <Show
                                 // TODO: fix this dummy logic
                                 when=move || {
-                                    let n_articles = articles.with(|x| x.as_ref().map(Vec::len).unwrap_or_default()).unwrap_or_default();
+                                    let n_articles = articles.with(|x| x.as_ref().map_or(0, |y| y.as_ref().map(Vec::len).unwrap_or_default()));
                                     n_articles > 0 && n_articles >=
                                     pagination.with(|x| x.as_ref().map(crate::models::Pagination::get_amount).unwrap_or_default()) as usize
                                 }
@@ -187,14 +187,13 @@ fn TagList() -> impl IntoView {
                 .unwrap_or_default()
                 .to_string()
         });
-        tag_list.with(move |ts| {
-            ts.clone().map(move |tags| {
-                // TODO: Uncomment this when the bug it's fixed
+        tag_list.get().map(move |ts| {
+            ts.map(move |tags| {
                 view! {
                     <For
                         each=move || tags.clone().into_iter().enumerate()
                         key=|(i, _)| *i
-                        view=move |(_, t): (usize, String)| {
+                        children=move |(_, t): (usize, String)| {
                             let t2 = t.to_string();
                             let same = t2 == tag_elected;
                             view!{

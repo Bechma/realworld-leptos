@@ -8,4 +8,4 @@ mod comment;
 pub use comment::Comment;
 
 #[cfg(feature = "ssr")]
-pub(self) const DATE_FORMAT: &str = "%d/%m/%Y %H:%M";
+const DATE_FORMAT: &str = "%d/%m/%Y %H:%M";

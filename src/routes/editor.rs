@@ -141,7 +141,9 @@ pub async fn editor_action(
 ) -> Result<EditorResponse, ServerFnError> {
     let Some(author) = crate::auth::get_username() else {
         leptos_axum::redirect("/login");
-        return Ok(EditorResponse::ValidationError("you should be authenticated".to_string()));
+        return Ok(EditorResponse::ValidationError(
+            "you should be authenticated".to_string(),
+        ));
     };
     let article = match validate_article(title, description, body, tag_list) {
         Ok(x) => x,
@@ -220,7 +222,7 @@ pub fn Editor() -> impl IntoView {
                             <ErrorBoundary fallback=|_| {
                                 view! { <p class="error-messages text-xs-center">"Something went wrong."</p>}
                             }>
-                                {move || article_res.read().map(move |x| x.map(move |a| {
+                                {move || article_res.get().map(move |x| x.map(move |a| {
                                     view! {
                                         <fieldset>
                                             <fieldset class="form-group">

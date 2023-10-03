@@ -130,8 +130,8 @@ pub fn UserInfo(logged_user: crate::auth::UsernameSignal) -> impl IntoView {
                             }
                         >
                             {move || {
-                                resource.with(move |x| {
-                                    x.clone().map(move |u| {
+                                resource.get().map(move |x| {
+                                    x.map(move |u| {
                                         let image = u.user.image();
                                         let username = u.user.username();
                                         let bio = u.user.bio();

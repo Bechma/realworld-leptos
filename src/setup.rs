@@ -19,7 +19,7 @@ pub async fn init_app(configuration_path: Option<&str>) {
     let conf = get_configuration(configuration_path).await.unwrap();
     let addr = conf.leptos_options.site_addr;
     // Generate the list of routes in your Leptos App
-    let routes = generate_route_list(|| view! { <App/> }).await;
+    let routes = generate_route_list(|| view! { <App/> });
     let leptos_options = conf.leptos_options;
     let serve_dir = tower_http::services::ServeDir::new(&leptos_options.site_root)
         .append_index_html_on_directories(false);

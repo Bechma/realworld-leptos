@@ -68,7 +68,9 @@ fn update_user_validation(
 async fn get_user() -> Result<crate::models::User, ServerFnError> {
     let Some(username) = crate::auth::get_username() else {
         leptos_axum::redirect("/login");
-        return Err(ServerFnError::ServerError("You need to be authenticated".to_string()));
+        return Err(ServerFnError::ServerError(
+            "You need to be authenticated".to_string(),
+        ));
     };
 
     crate::models::User::get(username).await.map_err(|x| {
@@ -108,8 +110,8 @@ pub fn Settings(logout: crate::auth::LogoutSignal) -> impl IntoView {
                         <Suspense fallback=move || view!{<p>"Loading user settings"</p>} >
                             <ErrorBoundary fallback=|_| view!{<p>"There was a problem while fetching settings, try again later"</p>}>
                                 {move || {
-                                    resource.with(move |x| {
-                                        x.clone().map(move |user| view!{<SettingsViewForm user />})
+                                    resource.get().map(move |x| {
+                                        x.map(move |user| view!{<SettingsViewForm user />})
                                     })
                                 }}
                             </ErrorBoundary>
