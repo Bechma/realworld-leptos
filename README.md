@@ -18,6 +18,12 @@ This is an utility to easily compile either backend and frontend at the same tim
 
 `cargo install cargo-leptos`
 
+# sqlx
+
+We need to run migrations before compiling, otherwise the query! macros will fail and abort the compilation:
+
+`cargo install sqlx-cli`
+
 # How to run this project locally
 
 First, deploy a local postgres database, maybe docker is the fastest solution:
@@ -29,9 +35,13 @@ Clone it into your machine and run it with cargo-leptos:
 ```
 git clone https://github.com/Bechma/realworld-leptos.git
 cd realworld-leptos
-export DATABASE_URL=postgres://postgres:postgres@localhost/postgres
+cp .env.example .env
+source .env
+cargo sqlx migrate run
 cargo leptos watch
 ```
+
+Change the placeholder in .env for `JWT_SECRET` for security reasons.
 
 # How to test this project
 
@@ -59,5 +69,6 @@ And navigate to http://localhost:8080/
 # Details about deployment
 
 The deployment has been done thanks to the free tier of:
+
 - https://render.io/ for the fullstack application
 - https://www.elephantsql.com/ for the database

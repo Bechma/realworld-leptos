@@ -15,9 +15,9 @@ pub fn Signup(signup: SignupSignal) -> impl IntoView {
                 Ok(SignupResponse::CreateUserError(x)) => {
                     format!("Problem while creating user: {x}")
                 }
-                // We don't receive the success when it's redirecting, so it's fine for now... Maybe a bug?
+                // We don't receive the success when it's redirecting... https://github.com/leptos-rs/leptos/issues/1513
                 Ok(SignupResponse::Success) | Err(ServerFnError::Deserialization(_)) => {
-                    String::new()
+                    unreachable!("Signup success!")
                 }
                 Err(x) => {
                     tracing::error!("Problem during signup: {x:?}");

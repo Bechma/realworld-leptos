@@ -8,7 +8,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 axum = { version = "0.6", optional = true }
-jsonwebtoken = { version = "8", optional = true }
+jsonwebtoken = { version = "9", optional = true }
 tokio = { version = "1", optional = true }
 tower = { version = "0.4", optional = true }
 tower-http = { version = "0.4", features = ["fs", "trace"], optional = true }
@@ -23,10 +23,10 @@ serde = { version = "1", features = ["derive"] }
 
 console_error_panic_hook = { version = "0.1", optional = true }
 
-leptos = { version = "0.5.0" }
-leptos_meta = { version = "0.5.0" }
-leptos_axum = { version = "0.5.0", optional = true }
-leptos_router = { version = "0.5.0" }
+leptos = { version = "0.5.2" }
+leptos_meta = { version = "0.5.2" }
+leptos_axum = { version = "0.5.2", optional = true }
+leptos_router = { version = "0.5.2" }
 
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["fmt"] }

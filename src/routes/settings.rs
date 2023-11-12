@@ -96,7 +96,7 @@ pub struct UserGet {
 
 #[component]
 pub fn Settings(logout: crate::auth::LogoutSignal) -> impl IntoView {
-    let resource = create_resource(|| (), move |_| async move { settings_get().await });
+    let resource = create_resource(|| (), move |_| settings_get());
 
     view! {
         <Title text="Settings"/>

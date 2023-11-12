@@ -12,8 +12,10 @@ pub fn Login(login: LoginSignal) -> impl IntoView {
             msg.as_ref()
                 .map(|inner| match inner {
                     Ok(LoginMessages::Unsuccessful) => "Incorrect user or password",
-                    // We don't receive the success when it's redirecting, so it's fine for now... Maybe a bug?
-                    Ok(LoginMessages::Successful) | Err(ServerFnError::Deserialization(_)) => "",
+                    // We don't receive the success when it's redirecting... https://github.com/leptos-rs/leptos/issues/1513
+                    Ok(LoginMessages::Successful) | Err(ServerFnError::Deserialization(_)) => {
+                        unreachable!("login success!")
+                    }
                     Err(x) => {
                         tracing::error!("Problem during login: {x:?}");
                         "There was a problem, try again later"
