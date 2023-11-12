@@ -2,15 +2,9 @@ use leptos::{Action, RwSignal, ServerFnError};
 mod api;
 #[cfg(feature = "ssr")]
 mod server;
+pub use api::*;
 #[cfg(feature = "ssr")]
 pub use server::*;
-#[cfg(not(feature = "ssr"))]
-mod client;
-pub use api::*;
-#[cfg(not(feature = "ssr"))]
-pub use client::*;
-
-pub static AUTH_COOKIE: &str = "token";
 
 pub type LogoutSignal = Action<LogoutAction, Result<(), ServerFnError>>;
 pub type LoginSignal = Action<LoginAction, Result<LoginMessages, ServerFnError>>;

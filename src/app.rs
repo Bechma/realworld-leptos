@@ -11,7 +11,7 @@ pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
 
-    let username = create_rw_signal(crate::auth::get_username());
+    let username: crate::auth::UsernameSignal = create_rw_signal(None);
 
     let logout: crate::auth::LogoutSignal = create_server_action::<crate::auth::LogoutAction>();
     let login: crate::auth::LoginSignal = create_server_action::<crate::auth::LoginAction>();
@@ -20,12 +20,19 @@ pub fn App() -> impl IntoView {
     let (logout_version, login_version, signup_version) =
         (logout.version(), login.version(), signup.version());
 
-    create_effect(move |_| {
-        logout_version.track();
-        login_version.track();
-        signup_version.track();
-        username.set(crate::auth::get_username());
-    });
+    let user = create_resource(
+        move || {
+            (
+                logout_version.get(),
+                login_version.get(),
+                signup_version.get(),
+            )
+        },
+        move |_| {
+            tracing::debug!("fetch user");
+            crate::auth::current_user()
+        },
+    );
 
     view! {
         // injects a stylesheet into the document <head>
@@ -38,25 +45,58 @@ pub fn App() -> impl IntoView {
         // sets the document title
         <Title text="Welcome to Leptos"/>
 
-        // content for this welcome page
         <Router>
             <nav class="navbar navbar-light">
                 <div class="container">
                     <A class="navbar-brand" href="/" exact=true>"conduit"</A>
                     <ul class="nav navbar-nav pull-xs-right">
-                        <NavItems logout username />
+                        <Transition fallback=|| view!{<p>"Loading Navigation bar"</p>}>
+                        {move || user.get().map(move |x| {
+                            username.set(x.map(|y| y.username()).ok());
+                            view! {
+                                <NavItems logout username />
+                            }
+                        })}
+                        </Transition>
                     </ul>
                 </div>
             </nav>
             <main>
                 <Routes>
-                    <Route path="/" view=move || view! { <HomePage username/> }/>
+                    <Route path="/" view=move || view! {
+                        <Transition fallback=|| view!{<p>"Loading HomePage"</p>}>
+                        {move || user.get().map(move |x| {
+                            username.set(x.map(|y| y.username()).ok());
+                            view! {
+                                <HomePage username/>
+                            }
+                        })}
+                        </Transition>
+                    }/>
                     <Route path="/login" view=move || view! { <Login login/> }/>
                     <Route path="/signup" view=move || view! { <Signup signup/> }/>
                     <Route path="/settings" view=move || view! { <Settings logout /> }/>
                     <Route path="/editor/:slug?" view=|| view! { <Editor/> }/>
-                    <Route path="/article/:slug" view=move || view! { <Article username/> }/>
-                    <Route path="/profile/:user" view=move || view! { <Profile username/> }/>
+                    <Route path="/article/:slug" view=move || view! {
+                        <Transition fallback=|| view!{<p>"Loading Article"</p>}>
+                        {move || user.get().map(move |x| {
+                            username.set(x.map(|y| y.username()).ok());
+                            view! {
+                                <Article username/>
+                            }
+                        })}
+                        </Transition>
+                    }/>
+                    <Route path="/profile/:user" view=move || view! {
+                        <Transition fallback=|| view!{<p>"Loading Profile"</p>}>
+                        {move || user.get().map(move |x| {
+                            username.set(x.map(|y| y.username()).ok());
+                            view! {
+                                <Profile username/>
+                            }
+                        })}
+                        </Transition>
+                    }/>
                 </Routes>
             </main>
             <footer>

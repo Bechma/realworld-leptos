@@ -1,4 +1,4 @@
-FROM rust:1.71-bookworm as builder
+FROM rust:1.73-bookworm as builder
 
 RUN cargo install cargo-leptos &&\
     rustup target add wasm32-unknown-unknown &&\
@@ -8,14 +8,13 @@ WORKDIR /app
 ENV JWT_SECRET="replaceme when ran in prod"
 COPY . .
 
-RUN sed -i 's/env = "DEV"/env = "PROD"/' ./Cargo.toml &&\
-    cargo leptos build -r -vv
+RUN cargo leptos build -r -vv
 
 FROM debian:bookworm-slim as runner
 
 WORKDIR /app
 
-COPY --from=builder /app/target/server/release/realworld-leptos /app/
+COPY --from=builder /app/target/release/realworld-leptos /app/realworld-leptos
 COPY --from=builder /app/target/site /app/site
 
 ENV LEPTOS_OUTPUT_NAME="realworld-leptos"

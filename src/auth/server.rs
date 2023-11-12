@@ -6,6 +6,8 @@ use axum::{
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 
+static AUTH_COOKIE: &str = "token";
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenClaims {
     pub sub: String, // Optional. Subject (whom token refers to)
@@ -24,7 +26,7 @@ pub async fn auth_middleware<B>(req: Request<B>, next: axum::middleware::Next<B>
         Some(username) => {
             let Ok(_) = crate::models::User::get(username).await else {
                 tracing::info!("no user associated with this token");
-                return redirect(req, next).await
+                return redirect(req, next).await;
             };
 
             let path = req.uri().path();
@@ -75,7 +77,7 @@ pub(crate) fn get_username_from_headers(headers: &axum::http::HeaderMap) -> Opti
         x.to_str()
             .unwrap()
             .split("; ")
-            .find(|&x| x.starts_with(super::AUTH_COOKIE))
+            .find(|&x| x.starts_with(AUTH_COOKIE))
             .and_then(|x| x.split('=').last())
             .and_then(|x| decode_token(x).map(|jwt| jwt.claims.sub).ok())
     })
@@ -106,11 +108,8 @@ pub async fn set_username(username: String) -> bool {
         .unwrap();
         res.insert_header(
             axum::http::header::SET_COOKIE,
-            axum::http::HeaderValue::from_str(&format!(
-                "{}={token}; path=/",
-                crate::auth::AUTH_COOKIE
-            ))
-            .expect("header value couldn't be set"),
+            axum::http::HeaderValue::from_str(&format!("{AUTH_COOKIE}={token}; path=/; HttpOnly"))
+                .expect("header value couldn't be set"),
         );
         true
     } else {
