@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT username, email, bio, image, NULL as password FROM users WHERE email=$1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "bio",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "image",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "password",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "dafe0ca4b92e7ee20a60d8b1da46d647b2368dffc2778a6c8136d6bb23011cb3"
+}
