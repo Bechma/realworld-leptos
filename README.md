@@ -74,5 +74,8 @@ And navigate to http://localhost:8080/
 
 The deployment has been done thanks to the free tier of:
 
-- https://render.io/ for the fullstack application
-- https://www.elephantsql.com/ for the database
+- https://render.com/ for the fullstack application
+- https://neon.tech/ for the database (render has a 90 days expiration in the db)
+
+Previously, I deployed the db in https://www.elephantsql.com/ ,
+but [It will reach EOL soon](https://www.elephantsql.com/blog/end-of-life-announcement.html)
