@@ -1,8 +1,9 @@
-use crate::components::ArticlePreviewList;
-use crate::components::ButtonFollow;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
+
+use crate::components::ArticlePreviewList;
+use crate::components::ButtonFollow;
 
 #[server(UserArticlesAction, "/api", "GetJson")]
 #[tracing::instrument]
@@ -33,7 +34,7 @@ pub async fn user_profile(username: String) -> Result<UserProfileModel, ServerFn
         .map_err(|x| {
             let err = format!("Error while getting user in user_profile: {x:?}");
             tracing::error!("{err}");
-            ServerFnError::ServerError("Could not retrieve articles, try again later".into())
+            ServerFnError::new("Could not retrieve articles, try again later")
         })?;
     match crate::auth::get_username() {
         Some(lu) => sqlx::query!(
@@ -41,17 +42,17 @@ pub async fn user_profile(username: String) -> Result<UserProfileModel, ServerFn
             username,
             lu,
         )
-        .fetch_one(crate::database::get_db())
-        .await
-        .map_err(|x| {
-            let err = format!("Error while getting user in user_profile: {x:?}");
-            tracing::error!("{err}");
-            ServerFnError::ServerError("Could not retrieve articles, try again later".into())
-        })
-        .map(|x| UserProfileModel {
-            user,
-            following: x.exists,
-        }),
+            .fetch_one(crate::database::get_db())
+            .await
+            .map_err(|x| {
+                let err = format!("Error while getting user in user_profile: {x:?}");
+                tracing::error!("{err}");
+                ServerFnError::ServerError("Could not retrieve articles, try again later".into())
+            })
+            .map(|x| UserProfileModel {
+                user,
+                following: x.exists,
+            }),
         None => Ok(UserProfileModel {
             user,
             following: None,

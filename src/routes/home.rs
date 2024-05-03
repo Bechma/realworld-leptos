@@ -1,7 +1,8 @@
-use crate::components::ArticlePreviewList;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
+
+use crate::components::ArticlePreviewList;
 
 #[server(HomeAction, "/api", "GetJson")]
 async fn home_articles(
@@ -18,7 +19,7 @@ async fn home_articles(
             .await
             .map_err(|x| {
                 tracing::error!("problem while fetching home articles: {x:?}");
-                ServerFnError::ServerError("Problem while fetching home articles".into())
+                ServerFnError::new("Problem while fetching home articles")
             })?,
     )
 }
@@ -50,17 +51,17 @@ pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
                 pagination.get_tag().to_string(),
                 pagination.get_my_feed(),
             )
-            .await
+                .await
         },
     );
 
     let your_feed_href = move || {
         if username.with(Option::is_some)
             && !pagination.with(|x| {
-                x.as_ref()
-                    .map(crate::models::Pagination::get_my_feed)
-                    .unwrap_or_default()
-            })
+            x.as_ref()
+                .map(crate::models::Pagination::get_my_feed)
+                .unwrap_or_default()
+        })
         {
             pagination
                 .get()

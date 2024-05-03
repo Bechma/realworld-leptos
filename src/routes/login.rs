@@ -1,7 +1,8 @@
-use crate::auth::{LoginMessages, LoginSignal};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
+
+use crate::auth::{LoginMessages, LoginSignal};
 
 #[component]
 pub fn Login(login: LoginSignal) -> impl IntoView {
@@ -12,9 +13,9 @@ pub fn Login(login: LoginSignal) -> impl IntoView {
             msg.as_ref()
                 .map(|inner| match inner {
                     Ok(LoginMessages::Unsuccessful) => "Incorrect user or password",
-                    // We don't receive the success when it's redirecting... https://github.com/leptos-rs/leptos/issues/1513
-                    Ok(LoginMessages::Successful) | Err(ServerFnError::Deserialization(_)) => {
-                        unreachable!("login success!")
+                    Ok(LoginMessages::Successful) => {
+                        tracing::info!("login success!");
+                        "Done"
                     }
                     Err(x) => {
                         tracing::error!("Problem during login: {x:?}");
@@ -46,6 +47,7 @@ pub fn Login(login: LoginSignal) -> impl IntoView {
                                 <input name="password" class="form-control form-control-lg" type="password"
                                     placeholder="Password" />
                             </fieldset>
+                            <A href="/reset_password">Reset password</A>
                             <button class="btn btn-lg btn-primary pull-xs-right">"Sign in"</button>
                         </ActionForm>
                     </div>

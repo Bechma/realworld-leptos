@@ -43,6 +43,10 @@ cargo leptos watch
 
 Change the placeholder in .env for `JWT_SECRET` for security reasons.
 
+Also, there's a password reset functionality that works with a sending email. If you want
+to use that feature you can set MAILER_EMAIL and MAILER_PASSWD with your email creds
+and MAILER_SMTP_SERVER with your SMTP service.
+
 # How to test this project
 
 You will need to have a local database, in order to execute end2end testing.

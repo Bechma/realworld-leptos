@@ -1,7 +1,8 @@
-use crate::auth::{validate_signup, SignupAction, SignupResponse, SignupSignal};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
+
+use crate::auth::{SignupAction, SignupResponse, SignupSignal, validate_signup};
 
 #[component]
 pub fn Signup(signup: SignupSignal) -> impl IntoView {
@@ -15,9 +16,9 @@ pub fn Signup(signup: SignupSignal) -> impl IntoView {
                 Ok(SignupResponse::CreateUserError(x)) => {
                     format!("Problem while creating user: {x}")
                 }
-                // We don't receive the success when it's redirecting... https://github.com/leptos-rs/leptos/issues/1513
-                Ok(SignupResponse::Success) | Err(ServerFnError::Deserialization(_)) => {
-                    unreachable!("Signup success!")
+                Ok(SignupResponse::Success) => {
+                    tracing::info!("Signup success! redirecting");
+                    "Done".into()
                 }
                 Err(x) => {
                     tracing::error!("Problem during signup: {x:?}");

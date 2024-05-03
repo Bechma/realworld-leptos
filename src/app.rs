@@ -74,6 +74,7 @@ pub fn App() -> impl IntoView {
                         </Transition>
                     }/>
                     <Route path="/login" view=move || view! { <Login login/> }/>
+                    <Route path="/reset_password" view=move || view! { <ResetPassword/> }/>
                     <Route path="/signup" view=move || view! { <Signup signup/> }/>
                     <Route path="/settings" view=move || view! { <Settings logout /> }/>
                     <Route path="/editor/:slug?" view=|| view! { <Editor/> }/>

@@ -1,6 +1,7 @@
-use crate::app::App;
 use leptos::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
+
+use crate::app::App;
 
 /// # Panics
 ///
@@ -25,11 +26,6 @@ pub async fn init_app(configuration_path: Option<&str>) {
         .append_index_html_on_directories(false);
 
     let app = axum::Router::new()
-        // We need to register the server function handlers
-        .route(
-            "/api/*fn_name",
-            axum::routing::post(leptos_axum::handle_server_fns).get(leptos_axum::handle_server_fns),
-        )
         .leptos_routes(&leptos_options, routes, || view! { <App/> })
         .fallback_service(serve_dir)
         .layer(
@@ -48,9 +44,6 @@ pub async fn init_app(configuration_path: Option<&str>) {
         .layer(axum::middleware::from_fn(crate::auth::auth_middleware))
         .with_state(leptos_options);
 
-    // run with hyper `axum::Server` is a re-export of `hyper::Server`
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }

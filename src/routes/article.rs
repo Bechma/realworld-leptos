@@ -19,7 +19,7 @@ pub async fn get_article(slug: String) -> Result<ArticleResult, ServerFnError> {
             .map_err(|x| {
                 let err = format!("Error while getting user_profile articles: {x:?}");
                 tracing::error!("{err}");
-                ServerFnError::ServerError("Could not retrieve articles, try again later".into())
+                ServerFnError::new("Could not retrieve articles, try again later")
             })?,
         logged_user: crate::auth::current_user().await.ok(),
     })

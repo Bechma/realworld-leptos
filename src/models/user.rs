@@ -111,8 +111,19 @@ impl User {
             "SELECT username, email, bio, image, NULL as password FROM users WHERE username=$1",
             username
         )
-        .fetch_one(crate::database::get_db())
-        .await
+            .fetch_one(crate::database::get_db())
+            .await
+    }
+
+    #[cfg(feature = "ssr")]
+    pub async fn get_email(email: String) -> Result<Self, sqlx::Error> {
+        sqlx::query_as!(
+            Self,
+            "SELECT username, email, bio, image, NULL as password FROM users WHERE email=$1",
+            email
+        )
+            .fetch_one(crate::database::get_db())
+            .await
     }
 
     #[cfg(feature = "ssr")]
@@ -123,8 +134,8 @@ impl User {
             self.email,
             self.password,
         )
-        .execute(crate::database::get_db())
-        .await
+            .execute(crate::database::get_db())
+            .await
     }
 
     #[cfg(feature = "ssr")]
@@ -144,7 +155,7 @@ WHERE username=$1",
             self.password.is_some(),
             self.password,
         )
-        .execute(crate::database::get_db())
-        .await
+            .execute(crate::database::get_db())
+            .await
     }
 }
