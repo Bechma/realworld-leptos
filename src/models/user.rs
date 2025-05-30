@@ -111,8 +111,8 @@ impl User {
             "SELECT username, email, bio, image, NULL as password FROM users WHERE username=$1",
             username
         )
-            .fetch_one(crate::database::get_db())
-            .await
+        .fetch_one(crate::database::get_db())
+        .await
     }
 
     #[cfg(feature = "ssr")]
@@ -122,8 +122,8 @@ impl User {
             "SELECT username, email, bio, image, NULL as password FROM users WHERE email=$1",
             email
         )
-            .fetch_one(crate::database::get_db())
-            .await
+        .fetch_one(crate::database::get_db())
+        .await
     }
 
     #[cfg(feature = "ssr")]
@@ -155,7 +155,7 @@ WHERE username=$1",
             self.password.is_some(),
             self.password,
         )
-            .execute(crate::database::get_db())
-            .await
+        .execute(crate::database::get_db())
+        .await
     }
 }

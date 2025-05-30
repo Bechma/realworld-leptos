@@ -11,16 +11,19 @@ static AUTH_COOKIE: &str = "token";
 pub struct TokenClaims {
     pub sub: String, // Optional. Subject (whom token refers to)
     pub exp: usize, // Required (validate_exp defaults to true in validation). Expiration time (as UTC timestamp)
-    // aud: String,         // Optional. Audience
-    // iat: usize,          // Optional. Issued at (as UTC timestamp)
-    // iss: String,         // Optional. Issuer
-    // nbf: usize,          // Optional. Not Before (as UTC timestamp)
-    // sub: String,         // Optional. Subject (whom token refers to)
+                    // aud: String,         // Optional. Audience
+                    // iat: usize,          // Optional. Issued at (as UTC timestamp)
+                    // iss: String,         // Optional. Issuer
+                    // nbf: usize,          // Optional. Not Before (as UTC timestamp)
+                    // sub: String,         // Optional. Subject (whom token refers to)
 }
 
 pub(crate) static REMOVE_COOKIE: &str = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
-pub async fn auth_middleware(req: Request<axum::body::Body>, next: axum::middleware::Next) -> Response {
+pub async fn auth_middleware(
+    req: Request<axum::body::Body>,
+    next: axum::middleware::Next,
+) -> Response {
     match get_username_from_headers(req.headers()) {
         Some(username) => {
             let Ok(_) = crate::models::User::get(username).await else {
@@ -86,14 +89,14 @@ pub(crate) fn get_username_from_headers(headers: &axum::http::HeaderMap) -> Opti
             .unwrap()
             .split("; ")
             .find(|&x| x.starts_with(AUTH_COOKIE))
-            .and_then(|x| x.split('=').last())
+            .and_then(|x| x.split('=').next_back())
             .and_then(|x| decode_token(x).map(|jwt| jwt.claims.sub).ok())
     })
 }
 
 #[tracing::instrument]
 pub fn get_username() -> Option<String> {
-    if let Some(req) = leptos::use_context::<axum::http::request::Parts>() {
+    if let Some(req) = leptos::prelude::use_context::<axum::http::request::Parts>() {
         get_username_from_headers(&req.headers)
     } else {
         None
@@ -102,12 +105,12 @@ pub fn get_username() -> Option<String> {
 
 #[tracing::instrument]
 pub async fn set_username(username: String) -> bool {
-    if let Some(res) = leptos::use_context::<leptos_axum::ResponseOptions>() {
+    if let Some(res) = leptos::prelude::use_context::<leptos_axum::ResponseOptions>() {
         let token = encode_token(TokenClaims {
             sub: username,
             exp: (sqlx::types::chrono::Utc::now().timestamp() as usize) + 3_600_000,
         })
-            .unwrap();
+        .unwrap();
         res.insert_header(
             header::SET_COOKIE,
             header::HeaderValue::from_str(&format!("{AUTH_COOKIE}={token}; path=/; HttpOnly"))

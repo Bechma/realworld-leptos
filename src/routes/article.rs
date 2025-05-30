@@ -1,6 +1,6 @@
-use leptos::*;
+use leptos::prelude::*;
 use leptos_meta::*;
-use leptos_router::*;
+use leptos_router::{components::A, hooks::use_params_map};
 
 use crate::components::ArticleMeta;
 
@@ -29,12 +29,12 @@ pub async fn get_article(slug: String) -> Result<ArticleResult, ServerFnError> {
 #[component]
 pub fn Article(username: crate::auth::UsernameSignal) -> impl IntoView {
     let params = use_params_map();
-    let article = create_resource(
-        move || params.get().get("slug").cloned().unwrap_or_default(),
+    let article = Resource::new(
+        move || params.get().get("slug").clone().unwrap_or_default(),
         |slug| async { get_article(slug).await },
     );
 
-    let title = create_rw_signal(String::from("Loading"));
+    let title = RwSignal::new(String::from("Loading"));
 
     view! {
         <Title text=move || title.get()/>
@@ -60,8 +60,8 @@ pub fn Article(username: crate::auth::UsernameSignal) -> impl IntoView {
 
 #[component]
 fn ArticlePage(username: crate::auth::UsernameSignal, result: ArticleResult) -> impl IntoView {
-    let article_signal = create_rw_signal(result.article.clone());
-    let user_signal = create_rw_signal(result.logged_user);
+    let article_signal = RwSignal::new(result.article.clone());
+    let user_signal = RwSignal::new(result.logged_user);
     let tag_list = result.article.tag_list;
 
     view! {
@@ -154,21 +154,22 @@ fn CommentSection(
     article: crate::components::ArticleSignal,
     user: RwSignal<Option<crate::models::User>>,
 ) -> impl IntoView {
-    let comments_action = create_server_action::<PostCommentAction>();
+    let comments_action = ServerAction::<PostCommentAction>::new();
     let result = comments_action.version();
-    let reset_comment = create_rw_signal("");
-    let comments = create_resource(
+    let reset_comment = RwSignal::new("");
+    let comments = Resource::new(
         move || (result.get(), article.with(|a| a.slug.to_string())),
         move |(_, a)| async move {
             reset_comment.set("");
-            get_comments(a).await
+            get_comments(a).await.unwrap_or_else(|_| vec![])
         },
     );
 
     view! {
         <div class="col-xs-12 col-md-8 offset-md-2">
             <Show when=move || username.with(Option::is_some) fallback=|| ()>
-                <ActionForm action=comments_action class="card comment-form">
+                <div class="card comment-form">
+                <ActionForm action=comments_action>
                     <input name="slug" type="hidden" value=move || article.with(|x| x.slug.to_string()) />
                     <div class="card-block">
                         <textarea name="body" prop:value=move || reset_comment.get() class="form-control" placeholder="Write a comment..." rows="3"></textarea>
@@ -180,21 +181,22 @@ fn CommentSection(
                         </button>
                     </div>
                 </ActionForm>
+                </div>
             </Show>
             <Suspense fallback=move || view! {<p>"Loading Comments from the article"</p> }>
                 <ErrorBoundary fallback=|_| {
                     view! { <p class="error-messages text-xs-center">"Something went wrong."</p>}
                 }>
-                    {move || comments.get().map(move |x| x.map(move |c| {
+                    {move || comments.get().map(move |c| {
                         view! {
                             <For each=move || c.clone().into_iter().enumerate()
                                 key=|(i, _)| *i
                                 children=move |(_, comment)| {
-                                    let comment = create_rw_signal(comment);
+                                    let comment = RwSignal::new(comment);
                                     view!{<Comment username comment comments />}
                                 }/>
                         }
-                    }))}
+                    })}
                 </ErrorBoundary>
             </Suspense>
         </div>
@@ -202,17 +204,17 @@ fn CommentSection(
 }
 
 #[component]
-fn Comment<T: 'static + Clone, S: 'static>(
+fn Comment(
     username: crate::auth::UsernameSignal,
     comment: RwSignal<crate::models::Comment>,
-    comments: Resource<T, S>,
+    comments: Resource<Vec<crate::models::Comment>>,
 ) -> impl IntoView {
     let user_link = move || format!("/profile/{}", comment.with(|x| x.username.to_string()));
     let user_image = move || comment.with(|x| x.user_image.clone().unwrap_or_default());
-    let delete_c = create_server_action::<DeleteCommentsAction>();
+    let delete_c = ServerAction::<DeleteCommentsAction>::new();
     let delete_result = delete_c.value();
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let Some(Ok(())) = delete_result.get() {
             tracing::info!("comment deleted!");
             comments.refetch();
@@ -225,19 +227,21 @@ fn Comment<T: 'static + Clone, S: 'static>(
                 <p class="card-text">{move || comment.with(|x| x.body.to_string())}</p>
             </div>
             <div class="card-footer">
-                <A href=user_link class="comment-author">
+                <A href=user_link><span class="comment-author">
                     <img src=user_image class="comment-author-img" />
-                </A>
+                </span></A>
                 " "
-                <A href=user_link class="comment-author">{move || comment.with(|x| x.username.to_string())}</A>
+                <A href=user_link><span  class="comment-author">{move || comment.with(|x| x.username.to_string())}</span></A>
                 <span class="date-posted">{move || comment.with(|x| x.created_at.to_string())}</span>
                 <Show
                     when=move || {username.get().unwrap_or_default() == comment.with(|x| x.username.to_string())}
                     fallback=|| ()>
-                    <ActionForm action=delete_c class="comment-author">
+                    <div  class="comment-author">
+                    <ActionForm action=delete_c>
                         <input type="hidden" name="id" value=move || comment.with(|x| x.id) />
                         <button class="btn btn-sm" type="submit"><i class="ion-trash-b"></i></button>
                     </ActionForm>
+                    </div>
                 </Show>
             </div>
         </div>

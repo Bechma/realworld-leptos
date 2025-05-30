@@ -1,8 +1,8 @@
 use std::env;
 
-use leptos::*;
+use leptos::prelude::*;
 use leptos_meta::*;
-use leptos_router::*;
+use leptos_router::{hooks::use_query, params::Params};
 
 #[cfg(feature = "ssr")]
 struct EmailCredentials {
@@ -21,14 +21,12 @@ pub async fn reset_password_1(email: String) -> Result<String, ServerFnError> {
         let err = format!("Bad email : {x:?}");
         tracing::error!("{err}");
     } else {
-        let creds = EMAIL_CREDS.get_or_init(|| {
-            EmailCredentials {
-                email: env::var("MAILER_EMAIL").unwrap(),
-                passwd: env::var("MAILER_PASSWD").unwrap(),
-                smtp_server: env::var("MAILER_SMTP_SERVER").unwrap(),
-            }
+        let creds = EMAIL_CREDS.get_or_init(|| EmailCredentials {
+            email: env::var("MAILER_EMAIL").unwrap(),
+            passwd: env::var("MAILER_PASSWD").unwrap(),
+            smtp_server: env::var("MAILER_SMTP_SERVER").unwrap(),
         });
-        let host = leptos_axum::extract::<axum::extract::Host>().await?.0;
+        let host = leptos_axum::extract::<axum_extra::extract::Host>().await?.0;
         let schema = if cfg!(debug_assertions) {
             "http"
         } else {
@@ -37,14 +35,17 @@ pub async fn reset_password_1(email: String) -> Result<String, ServerFnError> {
         let token = crate::auth::encode_token(crate::auth::TokenClaims {
             sub: email.clone(),
             exp: (sqlx::types::chrono::Utc::now().timestamp() as usize) + 3_600,
-        }).unwrap();
+        })
+        .unwrap();
         let uri = format!("{}://{}/reset_password?token={}", schema, host, token);
         // Build a simple multipart message
         let message = mail_send::mail_builder::MessageBuilder::new()
             .from(("Realworld Leptos", creds.email.as_str()))
             .to(vec![("You", email.as_str())])
             .subject("Your password reset from realworld leptos")
-            .text_body(format!("You can reset your password accessing the following link: {uri}"));
+            .text_body(format!(
+                "You can reset your password accessing the following link: {uri}"
+            ));
 
         // Connect to the SMTP submissions port, upgrade to TLS and
         // authenticate using the provided credentials.
@@ -67,7 +68,11 @@ fn validate_reset(password: String, confirm: String) -> bool {
 
 #[tracing::instrument]
 #[server(ResetPasswordAction2, "/api")]
-pub async fn reset_password_2(token: String, password: String, confirm: String) -> Result<String, ServerFnError> {
+pub async fn reset_password_2(
+    token: String,
+    password: String,
+    confirm: String,
+) -> Result<String, ServerFnError> {
     let mut message = String::from("Something went wrong, try again later");
     if !validate_reset(password.clone(), confirm) {
         return Ok(message);
@@ -99,7 +104,6 @@ pub async fn reset_password_2(token: String, password: String, confirm: String) 
     Ok(message)
 }
 
-
 #[derive(Params, PartialEq)]
 struct TokenQuery {
     token: Option<String>,
@@ -116,10 +120,10 @@ pub fn ResetPassword() -> impl IntoView {
                     {q.with(|x| {
                         if let Ok(token_query) = x {
                             if let Some(token) = token_query.token.as_ref() {
-                                return view! {<ConfirmPassword token={token.to_string()}/>}
+                                return view! {<ConfirmPassword token={token.to_string()}/>}.into_any()
                             }
                         }
-                        view! {<AskForEmail/> }
+                        view! {<AskForEmail/> }.into_any()
                     })}
                 </div>
             </div>
@@ -129,7 +133,7 @@ pub fn ResetPassword() -> impl IntoView {
 
 #[component]
 fn AskForEmail() -> impl IntoView {
-    let reset = create_server_action::<ResetPasswordAction1>();
+    let reset = ServerAction::<ResetPasswordAction1>::new();
     let result_of_call = reset.value();
 
     let error = move || {
@@ -166,7 +170,7 @@ fn AskForEmail() -> impl IntoView {
 
 #[component]
 fn ConfirmPassword(token: String) -> impl IntoView {
-    let reset = create_server_action::<ResetPasswordAction2>();
+    let reset = ServerAction::<ResetPasswordAction2>::new();
     let result_of_call = reset.value();
 
     let error = move || {

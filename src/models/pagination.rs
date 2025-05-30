@@ -1,5 +1,5 @@
-use leptos::*;
-use leptos_router::*;
+use leptos::prelude::*;
+use leptos_router::params::Params;
 
 #[derive(Debug, Params, PartialEq, Clone)]
 pub struct Pagination {
@@ -75,9 +75,10 @@ impl Default for Pagination {
     }
 }
 
-impl ToString for Pagination {
-    fn to_string(&self) -> String {
-        format!(
+impl std::fmt::Display for Pagination {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
             "/?tag={}&my_feed={}&page={}&amount={}",
             self.get_tag(),
             self.get_my_feed(),

@@ -12,7 +12,6 @@ mod editor;
 mod home;
 mod login;
 mod profile;
+mod reset_password;
 mod settings;
 mod signup;
-mod reset_password;
-
