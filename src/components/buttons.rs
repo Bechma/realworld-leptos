@@ -1,11 +1,12 @@
-use leptos::*;
-use leptos_router::*;
+use leptos::prelude::*;
 
 #[server(FollowAction, "/api")]
 #[tracing::instrument]
 pub async fn follow_action(other_user: String) -> Result<bool, ServerFnError> {
     let Some(username) = crate::auth::get_username() else {
-        return Err(ServerFnError::ServerError("You need to be authenticated".into()));
+        return Err(ServerFnError::ServerError(
+            "You need to be authenticated".into(),
+        ));
     };
     toggle_follow(username, other_user).await.map_err(|x| {
         tracing::error!("problem while updating the database: {x:?}");
@@ -51,7 +52,7 @@ pub fn ButtonFollow(
     author: ReadSignal<String>,
     following: bool,
 ) -> impl IntoView {
-    let follow = create_server_action::<FollowAction>();
+    let follow = ServerAction::<FollowAction>::new();
     let result_call = follow.value();
     let follow_cond = move || {
         if let Some(x) = result_call.get() {
@@ -72,18 +73,20 @@ pub fn ButtonFollow(
             when=move || logged_user.get().unwrap_or_default() != author.get()
             fallback=|| ()
         >
-            <ActionForm action=follow class="inline pull-xs-right">
-                <input type="hidden" name="other_user" value=move || author.get() />
-                <button type="submit" class="btn btn-sm btn-outline-secondary">
-                    <Show
-                        when=follow_cond
-                        fallback=|| view!{<i class="ion-plus-round"></i>" Follow "}
-                    >
-                        <i class="ion-close-round"></i>" Unfollow "
-                    </Show>
-                    {move || author.get()}
-                </button>
-            </ActionForm>
+            <div class="inline pull-xs-right">
+                <ActionForm action=follow >
+                    <input type="hidden" name="other_user" value=move || author.get() />
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                        <Show
+                            when=follow_cond
+                            fallback=|| view!{<i class="ion-plus-round"></i>" Follow "}
+                        >
+                            <i class="ion-close-round"></i>" Unfollow "
+                        </Show>
+                        {move || author.get()}
+                    </button>
+                </ActionForm>
+            </div>
         </Show>
     }
 }
@@ -92,7 +95,9 @@ pub fn ButtonFollow(
 #[tracing::instrument]
 pub async fn fav_action(slug: String) -> Result<bool, ServerFnError> {
     let Some(username) = crate::auth::get_username() else {
-        return Err(ServerFnError::ServerError("You need to be authenticated".into()));
+        return Err(ServerFnError::ServerError(
+            "You need to be authenticated".into(),
+        ));
     };
     toggle_fav(slug, username).await.map_err(|x| {
         tracing::error!("problem while updating the database: {x:?}");
@@ -137,7 +142,7 @@ pub fn ButtonFav(
     username: crate::auth::UsernameSignal,
     article: super::article_preview::ArticleSignal,
 ) -> impl IntoView {
-    let make_fav = create_server_action::<FavAction>();
+    let make_fav = ServerAction::<FavAction>::new();
     let result_make_fav = make_fav.value();
     let fav_count = move || {
         if let Some(x) = result_make_fav.get() {
@@ -167,17 +172,19 @@ pub fn ButtonFav(
                 </button>
             }
         >
-            <ActionForm action=make_fav class="inline pull-xs-right">
-                <input type="hidden" name="slug" value=move || article.with(|x| x.slug.to_string()) />
-                <button type="submit" class="btn btn-sm btn-outline-primary">
-                <Show
-                    when=move || article.with(|x| x.fav)
-                    fallback=move || {view!{<i class="ion-heart"></i>" Fav "}}
-                >
-                    <i class="ion-heart-broken"></i>" Unfav "
-                </Show>
-                <span class="counter">"("{fav_count}")"</span></button>
-            </ActionForm>
+            <div class="inline pull-xs-right">
+                <ActionForm action=make_fav>
+                    <input type="hidden" name="slug" value=move || article.with(|x| x.slug.to_string()) />
+                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                    <Show
+                        when=move || article.with(|x| x.fav)
+                        fallback=move || {view!{<i class="ion-heart"></i>" Fav "}}
+                    >
+                        <i class="ion-heart-broken"></i>" Unfav "
+                    </Show>
+                    <span class="counter">"("{fav_count}")"</span></button>
+                </ActionForm>
+            </div>
         </Show>
     }
 }

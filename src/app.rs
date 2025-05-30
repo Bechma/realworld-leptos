@@ -1,5 +1,6 @@
-use leptos::*;
+use leptos::prelude::*;
 use leptos_meta::*;
+use leptos_router::components::{Route, Router, Routes, A};
 use leptos_router::*;
 
 use crate::components::NavItems;
@@ -11,16 +12,16 @@ pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
 
-    let username: crate::auth::UsernameSignal = create_rw_signal(None);
+    let username: crate::auth::UsernameSignal = RwSignal::new(None);
 
-    let logout: crate::auth::LogoutSignal = create_server_action::<crate::auth::LogoutAction>();
-    let login: crate::auth::LoginSignal = create_server_action::<crate::auth::LoginAction>();
-    let signup: crate::auth::SignupSignal = create_server_action::<crate::auth::SignupAction>();
+    let logout: crate::auth::LogoutSignal = ServerAction::<crate::auth::LogoutAction>::new();
+    let login: crate::auth::LoginSignal = ServerAction::<crate::auth::LoginAction>::new();
+    let signup: crate::auth::SignupSignal = ServerAction::<crate::auth::SignupAction>::new();
 
     let (logout_version, login_version, signup_version) =
         (logout.version(), login.version(), signup.version());
 
-    let user = create_resource(
+    let user = Resource::new(
         move || {
             (
                 logout_version.get(),
@@ -35,6 +36,8 @@ pub fn App() -> impl IntoView {
     );
 
     view! {
+        <html>
+        <head>
         // injects a stylesheet into the document <head>
         // id=leptos means cargo-leptos will hot-reload this stylesheet
         <Stylesheet href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css"/>
@@ -45,10 +48,12 @@ pub fn App() -> impl IntoView {
         // sets the document title
         <Title text="Welcome to Leptos"/>
 
+        </head>
+        <body>
         <Router>
             <nav class="navbar navbar-light">
                 <div class="container">
-                    <A class="navbar-brand" href="/" exact=true>"conduit"</A>
+                    <A href="/" exact=true><span class="navbar-brand">"conduit"</span></A>
                     <ul class="nav navbar-nav pull-xs-right">
                         <Transition fallback=|| view!{<p>"Loading Navigation bar"</p>}>
                         {move || user.get().map(move |x| {
@@ -62,8 +67,8 @@ pub fn App() -> impl IntoView {
                 </div>
             </nav>
             <main>
-                <Routes>
-                    <Route path="/" view=move || view! {
+                <Routes fallback=|| ()>
+                    <Route path=path!("/") view=move || view! {
                         <Transition fallback=|| view!{<p>"Loading HomePage"</p>}>
                         {move || user.get().map(move |x| {
                             username.set(x.map(|y| y.username()).ok());
@@ -73,12 +78,12 @@ pub fn App() -> impl IntoView {
                         })}
                         </Transition>
                     }/>
-                    <Route path="/login" view=move || view! { <Login login/> }/>
-                    <Route path="/reset_password" view=move || view! { <ResetPassword/> }/>
-                    <Route path="/signup" view=move || view! { <Signup signup/> }/>
-                    <Route path="/settings" view=move || view! { <Settings logout /> }/>
-                    <Route path="/editor/:slug?" view=|| view! { <Editor/> }/>
-                    <Route path="/article/:slug" view=move || view! {
+                    <Route path=path!("/login") view=move || view! { <Login login/> }/>
+                    <Route path=path!("/reset_password") view=move || view! { <ResetPassword/> }/>
+                    <Route path=path!("/signup") view=move || view! { <Signup signup/> }/>
+                    <Route path=path!("/settings") view=move || view! { <Settings logout /> }/>
+                    <Route path=path!("/editor/:slug?") view=|| view! { <Editor/> }/>
+                    <Route path=path!("/article/:slug") view=move || view! {
                         <Transition fallback=|| view!{<p>"Loading Article"</p>}>
                         {move || user.get().map(move |x| {
                             username.set(x.map(|y| y.username()).ok());
@@ -88,7 +93,7 @@ pub fn App() -> impl IntoView {
                         })}
                         </Transition>
                     }/>
-                    <Route path="/profile/:user" view=move || view! {
+                    <Route path=path!("/profile/:user") view=move || view! {
                         <Transition fallback=|| view!{<p>"Loading Profile"</p>}>
                         {move || user.get().map(move |x| {
                             username.set(x.map(|y| y.username()).ok());
@@ -102,7 +107,7 @@ pub fn App() -> impl IntoView {
             </main>
             <footer>
                 <div class="container">
-                    <A href="/" class="logo-font">"conduit"</A>
+                    <A href="/"><span class="logo-font">"conduit"</span></A>
                     <span class="attribution">
                         "An interactive learning project from "
                         <a href="https://thinkster.io">"Thinkster"</a>
@@ -111,5 +116,7 @@ pub fn App() -> impl IntoView {
                 </div>
             </footer>
         </Router>
+        </body>
+        </html>
     }
 }

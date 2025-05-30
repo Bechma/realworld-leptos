@@ -1,6 +1,6 @@
 use crate::auth::*;
-use leptos::*;
-use leptos_router::*;
+use leptos::prelude::*;
+use leptos_router::components::A;
 
 #[component]
 pub(crate) fn NavItems(logout: LogoutSignal, username: UsernameSignal) -> impl IntoView {
@@ -9,18 +9,18 @@ pub(crate) fn NavItems(logout: LogoutSignal, username: UsernameSignal) -> impl I
 
     view! {
         <li class="nav-item">
-            <A class="nav-link" href="/" exact=true><i class="ion-home"></i>" Home"</A>
+            <A href="/" exact=true><span class="nav-link"><i class="ion-home"></i>" Home"</span></A>
         </li>
         <Show when=move || username.with(Option::is_none) fallback=move || {
             view!{
                 <li class="nav-item">
-                    <A class="nav-link" href="/editor"><i class="ion-compose"></i>" New Article"</A>
+                    <A href="/editor"><span class="nav-link"><i class="ion-compose"></i>" New Article"</span></A>
                 </li>
                 <li class="nav-item">
-                    <A class="nav-link" href="/settings"><i class="ion-gear-a"></i>" Settings"</A>
+                    <A href="/settings"><span class="nav-link"><i class="ion-gear-a"></i>" Settings"</span></A>
                 </li>
                 <li class="nav-item">
-                    <A class="nav-link" href=profile_href><i class="ion-person"></i>" "{profile_label}</A>
+                    <A href=profile_href><span class="nav-link"><i class="ion-person"></i>" "{profile_label}</span></A>
                 </li>
                 <li class="nav-item">
                     <ActionForm action=logout>
@@ -32,10 +32,10 @@ pub(crate) fn NavItems(logout: LogoutSignal, username: UsernameSignal) -> impl I
             }
         }>
             <li class="nav-item">
-                <A class="nav-link" href="/signup"><i class="ion-plus-round"></i>" Sign up"</A>
+                <A href="/signup"><span class="nav-link"><i class="ion-plus-round"></i>" Sign up"</span></A>
             </li>
             <li class="nav-item">
-                <A class="nav-link" href="/login"><i class="ion-log-in"></i>" Login"</A>
+                <A href="/login"><span class="nav-link"><i class="ion-log-in"></i>" Login"</span></A>
             </li>
         </Show>
     }

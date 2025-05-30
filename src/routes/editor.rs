@@ -1,6 +1,6 @@
-use leptos::*;
+use leptos::prelude::*;
 use leptos_meta::*;
-use leptos_router::*;
+use leptos_router::hooks::use_params_map;
 
 #[derive(serde::Deserialize, Clone, serde::Serialize)]
 pub enum EditorResponse {
@@ -164,18 +164,17 @@ pub async fn editor_action(
 #[tracing::instrument]
 #[component]
 pub fn Editor() -> impl IntoView {
-    let editor_server_action = create_server_action::<EditorAction>();
+    let editor_server_action = ServerAction::<EditorAction>::new();
     let result = editor_server_action.value();
     let error = move || {
         result.with(|x| {
-            x.as_ref().map_or(true, |y| {
-                y.is_err() || !matches!(y, Ok(EditorResponse::Successful(_)))
-            })
+            x.as_ref()
+                .is_none_or(|y| y.is_err() || !matches!(y, Ok(EditorResponse::Successful(_))))
         })
     };
 
     let params = use_params_map();
-    let article_res = create_resource(
+    let article_res = Resource::new(
         move || params.get(),
         |slug| async move {
             if let Some(s) = slug.get("slug") {

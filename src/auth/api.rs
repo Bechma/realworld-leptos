@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 
 #[derive(serde::Deserialize, Clone, serde::Serialize)]
 pub enum SignupResponse {
@@ -100,7 +100,7 @@ pub async fn logout_action() -> Result<(), ServerFnError> {
 #[tracing::instrument]
 pub async fn current_user() -> Result<crate::models::User, ServerFnError> {
     let Some(logged_user) = super::get_username() else {
-        return Err(ServerFnError::ServerError("you must be logged in".into()))
+        return Err(ServerFnError::ServerError("you must be logged in".into()));
     };
     crate::models::User::get(logged_user).await.map_err(|err| {
         tracing::error!("problem while retrieving current_user: {err:?}");

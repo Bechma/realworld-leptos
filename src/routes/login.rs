@@ -1,6 +1,6 @@
-use leptos::*;
+use leptos::prelude::*;
 use leptos_meta::*;
-use leptos_router::*;
+use leptos_router::components::A;
 
 use crate::auth::{LoginMessages, LoginSignal};
 

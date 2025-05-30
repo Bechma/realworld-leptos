@@ -1,3 +1,5 @@
+#![recursion_limit = "256"]
+
 pub mod app;
 pub(crate) mod auth;
 pub(crate) mod components;
@@ -12,7 +14,7 @@ pub mod setup;
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn hydrate() {
     use app::App;
-    use leptos::*;
+    use leptos::prelude::*;
 
     tracing_wasm::set_as_global_default();
     console_error_panic_hook::set_once();

@@ -1,6 +1,6 @@
-use leptos::*;
+use leptos::prelude::*;
 use leptos_meta::*;
-use leptos_router::*;
+use leptos_router::hooks::use_query;
 
 use crate::components::ArticlePreviewList;
 
@@ -14,14 +14,12 @@ async fn home_articles(
     let page = i64::from(page);
     let amount = i64::from(amount);
 
-    Ok(
-        crate::models::Article::for_home_page(page, amount, tag, my_feed)
-            .await
-            .map_err(|x| {
-                tracing::error!("problem while fetching home articles: {x:?}");
-                ServerFnError::new("Problem while fetching home articles")
-            })?,
-    )
+    crate::models::Article::for_home_page(page, amount, tag, my_feed)
+        .await
+        .map_err(|x| {
+            tracing::error!("problem while fetching home articles: {x:?}");
+            ServerFnError::new("Problem while fetching home articles")
+        })
 }
 
 #[server(GetTagsAction, "/api", "GetJson")]
@@ -41,7 +39,7 @@ async fn get_tags() -> Result<Vec<String>, ServerFnError> {
 pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
     let pagination = use_query::<crate::models::Pagination>();
 
-    let articles = create_resource(
+    let articles = Resource::new(
         move || pagination.get().unwrap_or_default(),
         move |pagination| async move {
             tracing::debug!("making another request: {pagination:?}");
@@ -51,17 +49,18 @@ pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
                 pagination.get_tag().to_string(),
                 pagination.get_my_feed(),
             )
-                .await
+            .await
+            .unwrap_or_else(|_| vec![])
         },
     );
 
     let your_feed_href = move || {
         if username.with(Option::is_some)
             && !pagination.with(|x| {
-            x.as_ref()
-                .map(crate::models::Pagination::get_my_feed)
-                .unwrap_or_default()
-        })
+                x.as_ref()
+                    .map(crate::models::Pagination::get_my_feed)
+                    .unwrap_or_default()
+            })
         {
             pagination
                 .get()
@@ -155,7 +154,7 @@ pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
                             <Show
                                 // TODO: fix this dummy logic
                                 when=move || {
-                                    let n_articles = articles.with(|x| x.as_ref().map_or(0, |y| y.as_ref().map(Vec::len).unwrap_or_default()));
+                                    let n_articles = articles.with(|x| x.as_ref().map_or(0, |y| y.len()));
                                     n_articles > 0 && n_articles >=
                                     pagination.with(|x| x.as_ref().map(crate::models::Pagination::get_amount).unwrap_or_default()) as usize
                                 }
@@ -178,7 +177,7 @@ pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
 #[component]
 fn TagList() -> impl IntoView {
     let pagination = use_query::<crate::models::Pagination>();
-    let tag_list = create_resource(|| (), |_| async { get_tags().await });
+    let tag_list = Resource::new(|| (), |_| async { get_tags().await });
 
     // TODO: Wonder if it's possible to reduce reduce the 2x clone
     let tag_view = move || {

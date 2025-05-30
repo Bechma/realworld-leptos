@@ -1,26 +1,24 @@
-use leptos::*;
-use leptos_router::*;
+use leptos::prelude::*;
+use leptos_router::components::A;
 
 use super::buttons::{ButtonFav, ButtonFollow};
 
 pub type ArticleSignal = RwSignal<crate::models::Article>;
 
-type ArticlesType<S, T = Result<Vec<crate::models::Article>, ServerFnError>> = Resource<S, T>;
-
 #[component]
-pub fn ArticlePreviewList<S: 'static + std::clone::Clone>(
+pub fn ArticlePreviewList(
     username: crate::auth::UsernameSignal,
-    articles: ArticlesType<S>,
+    articles: Resource<Vec<crate::models::Article>>,
 ) -> impl IntoView {
     let articles_view = move || {
         articles.with(move |x| {
             x.clone().map(move |res| {
                 view! {
                     <For
-                        each=move || res.clone().unwrap_or_default().into_iter().enumerate()
+                        each=move || res.clone().into_iter().enumerate()
                         key=|(i, _)| *i
                         children=move |(_, article): (usize, crate::models::Article)| {
-                            let article = create_rw_signal(article);
+                            let article = RwSignal::new(article);
                             view! {
                                 <ArticlePreview article=article username=username />
                             }
@@ -47,26 +45,28 @@ fn ArticlePreview(username: crate::auth::UsernameSignal, article: ArticleSignal)
     view! {
         <div class="article-preview">
             <ArticleMeta username=username article=article is_preview=true />
-            <A href=move || format!("/article/{}", article.with(|x| x.slug.clone())) class="preview-link">
-                <h1>{move || article.with(|x| x.title.to_string())}</h1>
-                <p>{move || article.with(|x| x.description.to_string())}</p>
-                <span class="btn">"Read more..."</span>
-                <Show
-                    when=move || article.with(|x| !x.tag_list.is_empty())
-                    fallback=|| view! {<span>"No tags"</span>}
-                >
-                    <ul class="tag-list">
-                        <i class="ion-pound"></i>
-                        <For
-                            each=move || article.with(|x| x.tag_list.clone().into_iter().enumerate())
-                            key=|(i, _)| *i
-                            children=move |(_, tag): (usize, String)| {
-                                view!{<li class="tag-default tag-pill tag-outline">{tag}</li>}
-                            }
-                        />
-                    </ul>
-                </Show>
-            </A>
+            <span class="preview-link">
+                <A href=move || format!("/article/{}", article.with(|x| x.slug.clone()))>
+                    <h1>{move || article.with(|x| x.title.to_string())}</h1>
+                    <p>{move || article.with(|x| x.description.to_string())}</p>
+                    <span class="btn">"Read more..."</span>
+                    <Show
+                        when=move || article.with(|x| !x.tag_list.is_empty())
+                        fallback=|| view! {<span>"No tags"</span>}
+                    >
+                        <ul class="tag-list">
+                            <i class="ion-pound"></i>
+                            <For
+                                each=move || article.with(|x| x.tag_list.clone().into_iter().enumerate())
+                                key=|(i, _)| *i
+                                children=move |(_, tag): (usize, String)| {
+                                    view!{<li class="tag-default tag-pill tag-outline">{tag}</li>}
+                                }
+                            />
+                        </ul>
+                    </Show>
+                </A>
+            </span>
         </div>
     }
 }
@@ -85,13 +85,13 @@ pub fn ArticleMeta(
         )
     };
 
-    let delete_a = create_server_action::<DeleteArticleAction>();
+    let delete_a = ServerAction::<DeleteArticleAction>::new();
 
     view! {
         <div class="article-meta">
             <A href=profile_ref><img src=move || article.with(|x| x.author.image.clone().unwrap_or_default()) /></A>
             <div class="info">
-                <A href=profile_ref class="author">{move || article.with(|x| x.author.username.to_string())}</A>
+                <A href=profile_ref><span class="author">{move || article.with(|x| x.author.username.to_string())}</span></A>
                 <span class="date">{move || article.with(|x| x.created_at.to_string())}</span>
             </div>
             <Show
@@ -102,7 +102,7 @@ pub fn ArticleMeta(
                             when=move || {username.get().unwrap_or_default() == article.with(|x| x.author.username.to_string())}
                             fallback=move || {
                                 let following = article.with(|x| x.author.following);
-                                let (author, _) = create_signal(article.with(|x| x.author.username.to_string()));
+                                let (author, _) = signal(article.with(|x| x.author.username.to_string()));
                                 view!{
                                 <Show when=move || username.with(Option::is_some) fallback=|| ()>
                                     <ButtonFav username=username article=article />
@@ -110,15 +110,17 @@ pub fn ArticleMeta(
                                 </Show>
                             }}
                         >
-                            <A class="btn btn-sm btn-outline-secondary" href=editor_ref>
-                                <i class="ion-compose"></i>" Edit article"
+                            <A href=editor_ref>
+                                <span class="btn btn-sm btn-outline-secondary"><i class="ion-compose"></i>" Edit article"</span>
                             </A>
-                            <ActionForm action=delete_a class="inline">
-                                <input type="hidden" name="slug" value=move || article.with(|x| x.slug.to_string()) />
-                                <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                    <i class="ion-trash-a"></i>" Delete article"
-                                </button>
-                            </ActionForm>
+                            <div  class="inline">
+                                <ActionForm action=delete_a>
+                                    <input type="hidden" name="slug" value=move || article.with(|x| x.slug.to_string()) />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                        <i class="ion-trash-a"></i>" Delete article"
+                                    </button>
+                                </ActionForm>
+                            </div>
                         </Show>
                     }
                 }

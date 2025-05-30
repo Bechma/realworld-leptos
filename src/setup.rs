@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 
 use crate::app::App;
@@ -17,12 +17,12 @@ pub async fn init_app(configuration_path: Option<&str>) {
         .expect("problem during initialization of the database");
 
     // Get leptos configuration
-    let conf = get_configuration(configuration_path).await.unwrap();
+    let conf = get_configuration(configuration_path).unwrap();
     let addr = conf.leptos_options.site_addr;
     // Generate the list of routes in your Leptos App
     let routes = generate_route_list(|| view! { <App/> });
     let leptos_options = conf.leptos_options;
-    let serve_dir = tower_http::services::ServeDir::new(&leptos_options.site_root)
+    let serve_dir = tower_http::services::ServeDir::new(leptos_options.site_root.as_ref())
         .append_index_html_on_directories(false);
 
     let app = axum::Router::new()

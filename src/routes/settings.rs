@@ -1,6 +1,5 @@
-use leptos::*;
+use leptos::prelude::*;
 use leptos_meta::*;
-use leptos_router::*;
 
 use serde::{Deserialize, Serialize};
 
@@ -96,7 +95,7 @@ pub struct UserGet {
 
 #[component]
 pub fn Settings(logout: crate::auth::LogoutSignal) -> impl IntoView {
-    let resource = create_resource(|| (), move |_| settings_get());
+    let resource = Resource::new(|| (), move |_| settings_get());
 
     view! {
         <Title text="Settings"/>
@@ -129,13 +128,12 @@ pub fn Settings(logout: crate::auth::LogoutSignal) -> impl IntoView {
 
 #[component]
 fn SettingsViewForm(user: crate::models::User) -> impl IntoView {
-    let settings_server_action = create_server_action::<SettingsUpdateAction>();
+    let settings_server_action = ServerAction::<SettingsUpdateAction>::new();
     let result = settings_server_action.value();
     let error = move || {
         result.with(|x| {
-            x.as_ref().map_or(true, |y| {
-                y.is_err() || !matches!(y, Ok(SettingsUpdateError::Successful))
-            })
+            x.as_ref()
+                .is_none_or(|y| y.is_err() || !matches!(y, Ok(SettingsUpdateError::Successful)))
         })
     };
 
