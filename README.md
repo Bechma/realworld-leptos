@@ -14,7 +14,7 @@ Once finished, add webassembly target to rust:
 
 ## cargo-leptos
 
-This is an utility to easily compile either backend and frontend at the same time:
+This is a utility to easily compile either backend and frontend at the same time:
 
 `cargo install cargo-leptos`
 
@@ -37,7 +37,7 @@ git clone https://github.com/Bechma/realworld-leptos.git
 cd realworld-leptos
 cp .env.example .env
 source .env
-cargo sqlx migrate run
+cargo sqlx database setup
 cargo leptos watch
 ```
 
