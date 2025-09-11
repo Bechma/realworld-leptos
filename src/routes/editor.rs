@@ -234,8 +234,9 @@ pub fn Editor() -> impl IntoView {
                                             </fieldset>
                                             <fieldset class="form-group">
                                                 <textarea name="body" class="form-control" rows="8"
-                                                    placeholder="Write your article (in markdown)" minlength=BODY_MIN_LENGTH
-                                                    prop:value=a.article.body.unwrap_or_default()></textarea>
+                                                    placeholder="Write your article (in markdown)" minlength=BODY_MIN_LENGTH>
+                                                    {a.article.body.unwrap_or_default()}
+                                                </textarea>
                                             </fieldset>
                                             <fieldset class="form-group">
                                                 <input name="tag_list" type="text" class="form-control"
