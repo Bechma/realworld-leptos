@@ -24,11 +24,11 @@ static EMAIL_REGEX: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new
 impl User {
     #[inline]
     pub fn username(&self) -> String {
-        self.username.to_string()
+        self.username.clone()
     }
     #[inline]
     pub fn email(&self) -> String {
-        self.email.to_string()
+        self.email.clone()
     }
     #[inline]
     pub fn bio(&self) -> Option<String> {

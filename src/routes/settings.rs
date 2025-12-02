@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use leptos_meta::*;
+use leptos_meta::Title;
 
 use serde::{Deserialize, Serialize};
 
@@ -85,17 +85,9 @@ pub async fn settings_get() -> Result<crate::models::User, ServerFnError> {
     get_user().await
 }
 
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-pub struct UserGet {
-    username: String,
-    email: String,
-    bio: Option<String>,
-    image: Option<String>,
-}
-
 #[component]
 pub fn Settings(logout: crate::auth::LogoutSignal) -> impl IntoView {
-    let resource = Resource::new(|| (), move |_| settings_get());
+    let resource = Resource::new(|| (), move |()| settings_get());
 
     view! {
         <Title text="Settings"/>

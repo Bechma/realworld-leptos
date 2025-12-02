@@ -174,7 +174,7 @@ pub fn ButtonFav(
         >
             <div class="inline pull-xs-right">
                 <ActionForm action=make_fav>
-                    <input type="hidden" name="slug" value=move || article.with(|x| x.slug.to_string()) />
+                    <input type="hidden" name="slug" value=move || article.with(|x| x.slug.clone()) />
                     <button type="submit" class="btn btn-sm btn-outline-primary">
                     <Show
                         when=move || article.with(|x| x.fav)

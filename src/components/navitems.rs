@@ -1,4 +1,4 @@
-use crate::auth::*;
+use crate::auth::{LogoutSignal, UsernameSignal};
 use leptos::prelude::*;
 use leptos_router::components::A;
 

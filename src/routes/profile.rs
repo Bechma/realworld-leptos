@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use leptos_meta::*;
+use leptos_meta::Title;
 use leptos_router::hooks::{use_params_map, use_query_map};
 
 use crate::components::ArticlePreviewList;
@@ -113,7 +113,7 @@ pub fn Profile(username: crate::auth::UsernameSignal) -> impl IntoView {
 pub fn UserInfo(logged_user: crate::auth::UsernameSignal) -> impl IntoView {
     let params = use_params_map();
     let resource = Resource::new(
-        move || (params.with(|x| x.get("user").clone().unwrap_or_default())),
+        move || params.with(|x| x.get("user").clone().unwrap_or_default()),
         move |user| async move { user_profile(user).await },
     );
 
@@ -136,7 +136,7 @@ pub fn UserInfo(logged_user: crate::auth::UsernameSignal) -> impl IntoView {
                                         let image = u.user.image();
                                         let username = u.user.username();
                                         let bio = u.user.bio();
-                                        let (author, _) = signal(username.to_string());
+                                        let (author, _) = signal(username.clone());
 
                                         view!{
                                             <img src=image class="user-img" />

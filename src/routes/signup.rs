@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use leptos_meta::*;
+use leptos_meta::Title;
 use leptos_router::components::A;
 
 use crate::auth::{validate_signup, SignupAction, SignupResponse, SignupSignal};

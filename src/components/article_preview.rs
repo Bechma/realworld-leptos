@@ -47,8 +47,8 @@ fn ArticlePreview(username: crate::auth::UsernameSignal, article: ArticleSignal)
             <ArticleMeta username=username article=article is_preview=true />
             <span class="preview-link">
                 <A href=move || format!("/article/{}", article.with(|x| x.slug.clone()))>
-                    <h1>{move || article.with(|x| x.title.to_string())}</h1>
-                    <p>{move || article.with(|x| x.description.to_string())}</p>
+                    <h1>{move || article.with(|x| x.title.clone())}</h1>
+                    <p>{move || article.with(|x| x.description.clone())}</p>
                     <span class="btn">"Read more..."</span>
                     <Show
                         when=move || article.with(|x| !x.tag_list.is_empty())
@@ -77,11 +77,11 @@ pub fn ArticleMeta(
     article: ArticleSignal,
     is_preview: bool,
 ) -> impl IntoView {
-    let editor_ref = move || format!("/editor/{}", article.with(|x| x.slug.to_string()));
+    let editor_ref = move || format!("/editor/{}", article.with(|x| x.slug.clone()));
     let profile_ref = move || {
         format!(
             "/profile/{}",
-            article.with(|x| x.author.username.to_string())
+            article.with(|x| x.author.username.clone())
         )
     };
 
@@ -91,18 +91,18 @@ pub fn ArticleMeta(
         <div class="article-meta">
             <A href=profile_ref><img src=move || article.with(|x| x.author.image.clone().unwrap_or_default()) /></A>
             <div class="info">
-                <A href=profile_ref><span class="author">{move || article.with(|x| x.author.username.to_string())}</span></A>
-                <span class="date">{move || article.with(|x| x.created_at.to_string())}</span>
+                <A href=profile_ref><span class="author">{move || article.with(|x| x.author.username.clone())}</span></A>
+                <span class="date">{move || article.with(|x| x.created_at.clone())}</span>
             </div>
             <Show
                 when=move || is_preview
                 fallback=move || {
                     view! {
                         <Show
-                            when=move || {username.get().unwrap_or_default() == article.with(|x| x.author.username.to_string())}
+                            when=move || {username.get().unwrap_or_default() == article.with(|x| x.author.username.clone())}
                             fallback=move || {
                                 let following = article.with(|x| x.author.following);
-                                let (author, _) = signal(article.with(|x| x.author.username.to_string()));
+                                let (author, _) = signal(article.with(|x| x.author.username.clone()));
                                 view!{
                                 <Show when=move || username.with(Option::is_some) fallback=|| ()>
                                     <ButtonFav username=username article=article />
@@ -115,7 +115,7 @@ pub fn ArticleMeta(
                             </A>
                             <div  class="inline">
                                 <ActionForm action=delete_a>
-                                    <input type="hidden" name="slug" value=move || article.with(|x| x.slug.to_string()) />
+                                    <input type="hidden" name="slug" value=move || article.with(|x| x.slug.clone()) />
                                     <button type="submit" class="btn btn-sm btn-outline-secondary">
                                         <i class="ion-trash-a"></i>" Delete article"
                                     </button>

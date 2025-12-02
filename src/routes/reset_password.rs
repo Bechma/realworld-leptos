@@ -1,7 +1,7 @@
 use std::env;
 
 use leptos::prelude::*;
-use leptos_meta::*;
+use leptos_meta::Title;
 use leptos_router::{hooks::use_query, params::Params};
 
 #[cfg(feature = "ssr")]
@@ -32,12 +32,12 @@ pub async fn reset_password_1(email: String) -> Result<String, ServerFnError> {
         } else {
             "https"
         };
-        let token = crate::auth::encode_token(crate::auth::TokenClaims {
+        let token = crate::auth::encode_token(&crate::auth::TokenClaims {
             sub: email.clone(),
             exp: (sqlx::types::chrono::Utc::now().timestamp() as usize) + 3_600,
         })
         .unwrap();
-        let uri = format!("{}://{}/reset_password?token={}", schema, host, token);
+        let uri = format!("{schema}://{host}/reset_password?token={token}");
         // Build a simple multipart message
         let message = mail_send::mail_builder::MessageBuilder::new()
             .from(("Realworld Leptos", creds.email.as_str()))
@@ -62,7 +62,7 @@ pub async fn reset_password_1(email: String) -> Result<String, ServerFnError> {
     return Ok(String::from("Check your email"));
 }
 
-fn validate_reset(password: String, confirm: String) -> bool {
+fn validate_reset(password: &str, confirm: &str) -> bool {
     password == confirm
 }
 
@@ -74,7 +74,7 @@ pub async fn reset_password_2(
     confirm: String,
 ) -> Result<String, ServerFnError> {
     let mut message = String::from("Something went wrong, try again later");
-    if !validate_reset(password.clone(), confirm) {
+    if !validate_reset(&password, &confirm) {
         return Ok(message);
     }
     let Ok(claims) = crate::auth::decode_token(token.as_str()) else {
@@ -118,11 +118,10 @@ pub fn ResetPassword() -> impl IntoView {
             <div class="container page">
                 <div class="row">
                     {q.with(|x| {
-                        if let Ok(token_query) = x {
-                            if let Some(token) = token_query.token.as_ref() {
-                                return view! {<ConfirmPassword token={token.to_string()}/>}.into_any()
+                        if let Ok(token_query) = x
+                            && let Some(token) = token_query.token.as_ref() {
+                                return view! {<ConfirmPassword token={token.clone()}/>}.into_any()
                             }
-                        }
                         view! {<AskForEmail/> }.into_any()
                     })}
                 </div>
@@ -140,7 +139,7 @@ fn AskForEmail() -> impl IntoView {
         result_of_call.with(|msg| {
             msg.as_ref()
                 .map(|inner| match inner {
-                    Ok(x) => x.to_string(),
+                    Ok(x) => x.clone(),
                     Err(x) => {
                         tracing::error!("Problem while sending email: {x:?}");
                         String::from("There was a problem, try again later")
@@ -177,7 +176,7 @@ fn ConfirmPassword(token: String) -> impl IntoView {
         result_of_call.with(|msg| {
             msg.as_ref()
                 .map(|inner| match inner {
-                    Ok(x) => x.to_string(),
+                    Ok(x) => x.clone(),
                     Err(x) => {
                         tracing::error!("Problem during reset: {x:?}");
                         String::from("There was a problem, try again later")
@@ -198,7 +197,7 @@ fn ConfirmPassword(token: String) -> impl IntoView {
                 let Ok(data) = ResetPasswordAction2::from_event(&ev) else {
                     return ev.prevent_default();
                 };
-                if !validate_reset(data.password, data.confirm) {
+                if !validate_reset(&data.password, &data.confirm) {
                     result_of_call.set(Some(Ok(String::from("Password is not the same"))));
                     ev.prevent_default();
                 }

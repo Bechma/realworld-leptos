@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use leptos_meta::*;
+use leptos_meta::Title;
 use leptos_router::{components::A, hooks::use_params_map};
 
 use crate::components::ArticleMeta;
@@ -46,7 +46,7 @@ pub fn Article(username: crate::auth::UsernameSignal) -> impl IntoView {
                 {move || {
                     article.get().map(move |x| {
                         x.map(move |article_result| {
-                            title.set(article_result.article.slug.to_string());
+                            title.set(article_result.article.slug.clone());
                             view! {
                                 <ArticlePage username result=article_result />
                             }
@@ -158,7 +158,7 @@ fn CommentSection(
     let result = comments_action.version();
     let reset_comment = RwSignal::new("");
     let comments = Resource::new(
-        move || (result.get(), article.with(|a| a.slug.to_string())),
+        move || (result.get(), article.with(|a| a.slug.clone())),
         move |(_, a)| async move {
             reset_comment.set("");
             get_comments(a).await.unwrap_or_else(|_| vec![])
@@ -170,7 +170,7 @@ fn CommentSection(
             <Show when=move || username.with(Option::is_some) fallback=|| ()>
                 <div class="card comment-form">
                 <ActionForm action=comments_action>
-                    <input name="slug" type="hidden" value=move || article.with(|x| x.slug.to_string()) />
+                    <input name="slug" type="hidden" value=move || article.with(|x| x.slug.clone()) />
                     <div class="card-block">
                         <textarea name="body" prop:value=move || reset_comment.get() class="form-control" placeholder="Write a comment..." rows="3"></textarea>
                     </div>
@@ -209,7 +209,7 @@ fn Comment(
     comment: RwSignal<crate::models::Comment>,
     comments: Resource<Vec<crate::models::Comment>>,
 ) -> impl IntoView {
-    let user_link = move || format!("/profile/{}", comment.with(|x| x.username.to_string()));
+    let user_link = move || format!("/profile/{}", comment.with(|x| x.username.clone()));
     let user_image = move || comment.with(|x| x.user_image.clone().unwrap_or_default());
     let delete_c = ServerAction::<DeleteCommentsAction>::new();
     let delete_result = delete_c.value();
@@ -224,17 +224,17 @@ fn Comment(
     view! {
         <div class="card">
             <div class="card-block">
-                <p class="card-text">{move || comment.with(|x| x.body.to_string())}</p>
+                <p class="card-text">{move || comment.with(|x| x.body.clone())}</p>
             </div>
             <div class="card-footer">
                 <A href=user_link><span class="comment-author">
                     <img src=user_image class="comment-author-img" />
                 </span></A>
                 " "
-                <A href=user_link><span  class="comment-author">{move || comment.with(|x| x.username.to_string())}</span></A>
-                <span class="date-posted">{move || comment.with(|x| x.created_at.to_string())}</span>
+                <A href=user_link><span  class="comment-author">{move || comment.with(|x| x.username.clone())}</span></A>
+                <span class="date-posted">{move || comment.with(|x| x.created_at.clone())}</span>
                 <Show
-                    when=move || {username.get().unwrap_or_default() == comment.with(|x| x.username.to_string())}
+                    when=move || {username.get().unwrap_or_default() == comment.with(|x| x.username.clone())}
                     fallback=|| ()>
                     <div  class="comment-author">
                     <ActionForm action=delete_c>

@@ -73,7 +73,7 @@ pub(crate) fn decode_token(
     )
 }
 
-pub(crate) fn encode_token(token_claims: TokenClaims) -> jsonwebtoken::errors::Result<String> {
+pub(crate) fn encode_token(token_claims: &TokenClaims) -> jsonwebtoken::errors::Result<String> {
     let secret = env!("JWT_SECRET");
     jsonwebtoken::encode(
         &jsonwebtoken::Header::default(),
@@ -106,7 +106,7 @@ pub fn get_username() -> Option<String> {
 #[tracing::instrument]
 pub async fn set_username(username: String) -> bool {
     if let Some(res) = leptos::prelude::use_context::<leptos_axum::ResponseOptions>() {
-        let token = encode_token(TokenClaims {
+        let token = encode_token(&TokenClaims {
             sub: username,
             exp: (sqlx::types::chrono::Utc::now().timestamp() as usize) + 3_600_000,
         })

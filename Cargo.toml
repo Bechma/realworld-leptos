@@ -1,40 +1,40 @@
 [package]
 name = "realworld-leptos"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-axum = { version = "0.8.4", optional = true }
-jsonwebtoken = { version = "9.3.1", optional = true }
+axum = { version = "0.8.7", optional = true }
+jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"], optional = true }
 tokio = { version = "1.47.1", features = ["rt-multi-thread"], optional = true }
 tower = { version = "0.5.2", optional = true }
-tower-http = { version = "0.6.6", features = ["fs", "trace"], optional = true }
+tower-http = { version = "0.6.7", features = ["fs", "trace"], optional = true }
 sqlx = { version = "0.8.6", features = [
     "runtime-tokio-rustls",
     "postgres",
     "chrono",
 ], optional = true }
-mail-send = { version = "0.5.1", optional = true }
-regex = { version = "1.11.2", optional = true }
+mail-send = { version = "0.5.2", optional = true }
+regex = { version = "1.12.2", optional = true }
 
-serde = { version = "1.0.219", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
 
 console_error_panic_hook = { version = "0.1.7", optional = true }
 
-leptos = "0.8.8"
+leptos = "0.8.14"
 leptos_meta = "0.8.5"
-leptos_axum = { version = "0.8.6", optional = true }
+leptos_axum = { version = "0.8.7", optional = true }
 leptos_router = "0.8.6"
 
-tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.20", features = ["fmt"] }
+tracing = "0.1.43"
+tracing-subscriber = { version = "0.3.22", features = ["fmt"] }
 tracing-wasm = { version = "0.2.1", optional = true }
 
-wasm-bindgen = "0.2.101"
-axum-extra = "0.10.1"
+wasm-bindgen = "0.2.106"
+axum-extra = "0.12.2"
 
 [features]
 default = ["ssr", "hydrate"]

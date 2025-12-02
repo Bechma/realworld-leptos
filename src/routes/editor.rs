@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use leptos_meta::*;
+use leptos_meta::Title;
 use leptos_router::hooks::use_params_map;
 
 #[derive(serde::Deserialize, Clone, serde::Serialize)]
@@ -28,7 +28,7 @@ fn validate_article(
     title: String,
     description: String,
     body: String,
-    tag_list: String,
+    tag_list: &str,
 ) -> Result<ArticleUpdate, String> {
     if title.len() < TITLE_MIN_LENGTH {
         return Err("You need to provide a title with at least 4 characters".into());
@@ -65,22 +65,7 @@ async fn update_article(
 ) -> Result<String, sqlx::Error> {
     static BIND_LIMIT: usize = 65535;
     let mut transaction = crate::database::get_db().begin().await?;
-    let (rows_affected, slug) = if !slug.is_empty() {
-        (
-            sqlx::query!(
-                "UPDATE Articles SET title=$1, description=$2, body=$3 WHERE slug=$4 and author=$5",
-                article.title,
-                article.description,
-                article.body,
-                slug,
-                author,
-            )
-            .execute(transaction.as_mut())
-            .await?
-            .rows_affected(),
-            slug.to_string(),
-        )
-    } else {
+    let (rows_affected, slug) = if slug.is_empty() {
         // The slug is derived from the title
         let slug = article
             .title
@@ -106,6 +91,21 @@ async fn update_article(
         .execute(transaction.as_mut())
         .await?.rows_affected(),
         slug)
+    } else {
+        (
+            sqlx::query!(
+                "UPDATE Articles SET title=$1, description=$2, body=$3 WHERE slug=$4 and author=$5",
+                article.title,
+                article.description,
+                article.body,
+                slug,
+                author,
+            )
+            .execute(transaction.as_mut())
+            .await?
+            .rows_affected(),
+            slug.clone(),
+        )
     };
     if rows_affected != 1 {
         // We are going to modify just one row, otherwise something funky is going on
@@ -145,7 +145,7 @@ pub async fn editor_action(
             "you should be authenticated".to_string(),
         ));
     };
-    let article = match validate_article(title, description, body, tag_list) {
+    let article = match validate_article(title, description, body, &tag_list) {
         Ok(x) => x,
         Err(x) => return Ok(EditorResponse::ValidationError(x)),
     };
@@ -178,7 +178,7 @@ pub fn Editor() -> impl IntoView {
         move || params.get(),
         |slug| async move {
             if let Some(s) = slug.get("slug") {
-                super::get_article(s.to_string()).await
+                super::get_article(s.clone()).await
             } else {
                 Ok(super::ArticleResult::default())
             }

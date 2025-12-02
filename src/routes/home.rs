@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use leptos_meta::*;
+use leptos_meta::Title;
 use leptos_router::hooks::use_query;
 
 use crate::components::ArticlePreviewList;
@@ -58,8 +58,7 @@ pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
         if username.with(Option::is_some)
             && !pagination.with(|x| {
                 x.as_ref()
-                    .map(crate::models::Pagination::get_my_feed)
-                    .unwrap_or_default()
+                    .is_ok_and(crate::models::Pagination::get_my_feed)
             })
         {
             pagination
@@ -80,8 +79,7 @@ pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
                 "disabled"
             } else if pagination.with(|x| x
                 .as_ref()
-                .map(crate::models::Pagination::get_my_feed)
-                .unwrap_or_default())
+                .is_ok_and(crate::models::Pagination::get_my_feed))
             {
                 "active"
             } else {
@@ -113,7 +111,7 @@ pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link"
-                                    class:active=move || !pagination.with(|x| x.as_ref().map(crate::models::Pagination::get_my_feed).unwrap_or_default())
+                                    class:active=move || !pagination.with(|x| x.as_ref().is_ok_and(crate::models::Pagination::get_my_feed))
                                     href=move || pagination.get().unwrap_or_default().reset_page().set_my_feed(false).to_string()>
                                         "Global Feed"
                                     </a>
@@ -154,7 +152,7 @@ pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
                             <Show
                                 // TODO: fix this dummy logic
                                 when=move || {
-                                    let n_articles = articles.with(|x| x.as_ref().map_or(0, |y| y.len()));
+                                    let n_articles = articles.with(|x| x.as_ref().map_or(0, std::vec::Vec::len));
                                     n_articles > 0 && n_articles >=
                                     pagination.with(|x| x.as_ref().map(crate::models::Pagination::get_amount).unwrap_or_default()) as usize
                                 }
@@ -177,7 +175,7 @@ pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
 #[component]
 fn TagList() -> impl IntoView {
     let pagination = use_query::<crate::models::Pagination>();
-    let tag_list = Resource::new(|| (), |_| async { get_tags().await });
+    let tag_list = Resource::new(|| (), |()| async { get_tags().await });
 
     // TODO: Wonder if it's possible to reduce reduce the 2x clone
     let tag_view = move || {
@@ -194,7 +192,7 @@ fn TagList() -> impl IntoView {
                         each=move || tags.clone().into_iter().enumerate()
                         key=|(i, _)| *i
                         children=move |(_, t): (usize, String)| {
-                            let t2 = t.to_string();
+                            let t2 = t.clone();
                             let same = t2 == tag_elected;
                             view!{
                                 <a class="tag-pill tag-default" class:tag-primary=same

@@ -1,10 +1,10 @@
 use leptos::prelude::*;
-use leptos_meta::*;
+use leptos_meta::{provide_meta_context, Stylesheet, Title};
 use leptos_router::components::{Route, Router, Routes, A};
-use leptos_router::*;
+use leptos_router::{path};
 
 use crate::components::NavItems;
-use crate::routes::*;
+use crate::routes::{HomePage, Login, ResetPassword, Signup, Settings, Editor, Article, Profile};
 
 #[tracing::instrument]
 #[component]
