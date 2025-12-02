@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 
-use crate::app::App;
+use crate::app::{shell, App};
 
 /// # Panics
 ///
@@ -26,7 +26,10 @@ pub async fn init_app(configuration_path: Option<&str>) {
         .append_index_html_on_directories(false);
 
     let app = axum::Router::new()
-        .leptos_routes(&leptos_options, routes, || view! { <App/> })
+        .leptos_routes(&leptos_options, routes, {
+            let leptos_options = leptos_options.clone();
+            move || shell(leptos_options.clone())
+        })
         .fallback_service(serve_dir)
         .layer(
             tower_http::trace::TraceLayer::new_for_http()

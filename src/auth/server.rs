@@ -86,7 +86,7 @@ pub(crate) fn encode_token(token_claims: &TokenClaims) -> jsonwebtoken::errors::
 pub(crate) fn get_username_from_headers(headers: &axum::http::HeaderMap) -> Option<String> {
     headers.get(header::COOKIE).and_then(|x| {
         x.to_str()
-            .unwrap()
+            .ok()?
             .split("; ")
             .find(|&x| x.starts_with(AUTH_COOKIE))
             .and_then(|x| x.split('=').next_back())
@@ -96,11 +96,7 @@ pub(crate) fn get_username_from_headers(headers: &axum::http::HeaderMap) -> Opti
 
 #[tracing::instrument]
 pub fn get_username() -> Option<String> {
-    if let Some(req) = leptos::prelude::use_context::<axum::http::request::Parts>() {
-        get_username_from_headers(&req.headers)
-    } else {
-        None
-    }
+    leptos::prelude::use_context::<axum::http::request::Parts>().map(|req| get_username_from_headers(&req.headers)).flatten()
 }
 
 #[tracing::instrument]

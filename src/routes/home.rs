@@ -89,7 +89,7 @@ pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
     };
 
     view! {
-        <Title text="Home"/>
+        <Title text="Conduit Leptos Home"/>
 
         <div class="home-page">
             <div class="banner">
