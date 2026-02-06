@@ -54,7 +54,7 @@ pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
         },
     );
 
-    let your_feed_href = move || {
+    let your_feed_href = Memo::new(move |_| {
         if username.with(Option::is_some)
             && !pagination.with(|x| {
                 x.as_ref()
@@ -70,8 +70,8 @@ pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
         } else {
             String::new()
         }
-    };
-    let your_feed_class = move || {
+    });
+    let your_feed_class = Memo::new(move |_| {
         tracing::debug!("set class_my_feed");
         format!(
             "nav-link {}",
@@ -86,7 +86,7 @@ pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
                 ""
             }
         )
-    };
+    });
 
     view! {
         <Title text="Conduit Leptos Home"/>

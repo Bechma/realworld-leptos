@@ -24,10 +24,10 @@ serde = { version = "1.0.228", features = ["derive"] }
 
 console_error_panic_hook = { version = "0.1.7", optional = true }
 
-leptos = "0.8.14"
+leptos = "0.8.15"
 leptos_meta = "0.8.5"
 leptos_axum = { version = "0.8.7", optional = true }
-leptos_router = "0.8.6"
+leptos_router = "0.8.11"
 
 tracing = "0.1.43"
 tracing-subscriber = { version = "0.3.22", features = ["fmt"] }
@@ -94,7 +94,7 @@ assets-dir = "assets"
 js-dir = "js"
 
 # The IP and port (ex: 127.0.0.1:3000) where the server serves the content. Use it in your server setup.
-site-address = "127.0.0.1:3000"
+site-addr = "127.0.0.1:3000"
 # The port to use for automatic reload monitoring
 reload-port = 3001
 # [Optional] Command to use when running end2end tests. It will run in the end2end dir.
@@ -104,8 +104,6 @@ end2end-cmd = "npx playwright test"
 end2end-dir = "end2end"
 #  The browserlist query used for optimizing the CSS.
 browserquery = "defaults"
-# Set by cargo-leptos watch when building with that tool. Controls whether autoreload JS will be included in the head
-watch = true
 
 # The features to use when compiling the bin target
 #
