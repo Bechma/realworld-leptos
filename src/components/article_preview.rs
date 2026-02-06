@@ -15,9 +15,9 @@ pub fn ArticlePreviewList(
             x.clone().map(move |res| {
                 view! {
                     <For
-                        each=move || res.clone().into_iter().enumerate()
-                        key=|(i, _)| *i
-                        children=move |(_, article): (usize, crate::models::Article)| {
+                        each=move || res.clone().into_iter()
+                        key=|article| article.slug.clone()
+                        children=move |article: crate::models::Article| {
                             let article = RwSignal::new(article);
                             view! {
                                 <ArticlePreview article=article username=username />
@@ -57,9 +57,9 @@ fn ArticlePreview(username: crate::auth::UsernameSignal, article: ArticleSignal)
                         <ul class="tag-list">
                             <i class="ion-pound"></i>
                             <For
-                                each=move || article.with(|x| x.tag_list.clone().into_iter().enumerate())
-                                key=|(i, _)| *i
-                                children=move |(_, tag): (usize, String)| {
+                                each=move || article.with(|x| x.tag_list.clone().into_iter())
+                                key=|tag| tag.clone()
+                                children=move |tag: String| {
                                     view!{<li class="tag-default tag-pill tag-outline">{tag}</li>}
                                 }
                             />

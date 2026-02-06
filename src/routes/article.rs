@@ -82,9 +82,9 @@ fn ArticlePage(username: crate::auth::UsernameSignal, result: ArticleResult) -> 
 
                 <ul class="tag-list">
                     <For
-                        each=move || tag_list.clone().into_iter().enumerate()
-                        key=|(i, _)| *i
-                        children=|(_, a)| {view!{<li class="tag-default tag-pill tag-outline">{a}</li>}}
+                        each=move || tag_list.clone().into_iter()
+                        key=|tag| tag.clone()
+                        children=|tag: String| {view!{<li class="tag-default tag-pill tag-outline">{tag}</li>}}
                     />
                 </ul>
 
@@ -189,9 +189,9 @@ fn CommentSection(
                 }>
                     {move || comments.get().map(move |c| {
                         view! {
-                            <For each=move || c.clone().into_iter().enumerate()
-                                key=|(i, _)| *i
-                                children=move |(_, comment)| {
+                            <For each=move || c.clone().into_iter()
+                                key=|comment| comment.id
+                                children=move |comment: crate::models::Comment| {
                                     let comment = RwSignal::new(comment);
                                     view!{<Comment username comment comments />}
                                 }/>
