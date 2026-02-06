@@ -11,7 +11,7 @@ pub fn ArticlePreviewList(
     articles: Resource<Vec<crate::models::Article>>,
 ) -> impl IntoView {
     let articles_view = move || {
-        articles.with(move |x| {
+        articles.try_with(move |x| {
             x.clone().map(move |res| {
                 view! {
                     <For
@@ -99,10 +99,10 @@ pub fn ArticleMeta(
                 fallback=move || {
                     view! {
                         <Show
-                            when=move || {username.get().unwrap_or_default() == article.with(|x| x.author.username.clone())}
+                            when=move || {username.get() == article.try_with(|x| x.author.username.clone())}
                             fallback=move || {
-                                let following = article.with(|x| x.author.following);
-                                let (author, _) = signal(article.with(|x| x.author.username.clone()));
+                                let following = article.try_with(|x| x.author.following).unwrap_or_default();
+                                let (author, _) = signal(article.try_with(|x| x.author.username.clone()).unwrap_or_default());
                                 view!{
                                 <Show when=move || username.with(Option::is_some) fallback=|| ()>
                                     <ButtonFav username=username article=article />

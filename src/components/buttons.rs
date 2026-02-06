@@ -70,7 +70,7 @@ pub fn ButtonFollow(
 
     view! {
         <Show
-            when=move || logged_user.get().unwrap_or_default() != author.get()
+            when=move || logged_user.get() != author.try_get()
             fallback=|| ()
         >
             <div class="inline pull-xs-right">
@@ -148,7 +148,7 @@ pub fn ButtonFav(
         if let Some(x) = result_make_fav.get() {
             match x {
                 Ok(result) => {
-                    article.update(move |x| {
+                    article.try_update(move |x| {
                         x.fav = !x.fav;
                         x.favorites_count =
                             (x.favorites_count + if result { 1 } else { -1 }).max(0);
@@ -159,7 +159,7 @@ pub fn ButtonFav(
                 }
             }
         }
-        article.with(|x| x.favorites_count)
+        article.try_with(|x| x.favorites_count).unwrap_or_default()
     };
 
     view! {
@@ -174,10 +174,10 @@ pub fn ButtonFav(
         >
             <div class="inline pull-xs-right">
                 <ActionForm action=make_fav>
-                    <input type="hidden" name="slug" value=move || article.with(|x| x.slug.clone()) />
+                    <input type="hidden" name="slug" value=move || article.try_with(|x| x.slug.clone()).unwrap_or_default() />
                     <button type="submit" class="btn btn-sm btn-outline-primary">
                     <Show
-                        when=move || article.with(|x| x.fav)
+                        when=move || article.try_with(|x| x.fav).unwrap_or_default()
                         fallback=move || {view!{<i class="ion-heart"></i>" Fav "}}
                     >
                         <i class="ion-heart-broken"></i>" Unfav "
