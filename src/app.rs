@@ -1,10 +1,10 @@
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet};
 use leptos_router::components::{Route, Router, Routes, A};
-use leptos_router::{path};
+use leptos_router::path;
 
 use crate::components::NavItems;
-use crate::routes::{HomePage, Login, ResetPassword, Signup, Settings, Editor, Article, Profile};
+use crate::routes::{Article, Editor, HomePage, Login, Profile, ResetPassword, Settings, Signup};
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -54,6 +54,15 @@ pub fn App() -> impl IntoView {
         },
     );
 
+    Effect::new(move |_| {
+        if let Some(user_result) = user.get() {
+            let next_username = user_result.ok().map(|user| user.username());
+            if username.get_untracked() != next_username {
+                username.set(next_username);
+            }
+        }
+    });
+
     view! {
         // injects a stylesheet into the document <head>
         // id=leptos means cargo-leptos will hot-reload this stylesheet
@@ -68,8 +77,7 @@ pub fn App() -> impl IntoView {
                     <A href="/" exact=true><span class="navbar-brand">"conduit"</span></A>
                     <ul class="nav navbar-nav pull-xs-right">
                         <Transition fallback=|| view!{<p>"Loading Navigation bar"</p>}>
-                        {move || user.get().map(move |x| {
-                            username.set(x.map(|y| y.username()).ok());
+                        {move || user.get().map(move |_| {
                             view! {
                                 <NavItems logout username />
                             }
@@ -82,8 +90,7 @@ pub fn App() -> impl IntoView {
                 <Routes fallback=|| ()>
                     <Route path=path!("/") view=move || view! {
                         <Transition fallback=|| view!{<p>"Loading HomePage"</p>}>
-                        {move || user.get().map(move |x| {
-                            username.set(x.map(|y| y.username()).ok());
+                        {move || user.get().map(move |_| {
                             view! {
                                 <HomePage username/>
                             }
@@ -97,8 +104,7 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/editor/:slug?") view=|| view! { <Editor/> }/>
                     <Route path=path!("/article/:slug") view=move || view! {
                         <Transition fallback=|| view!{<p>"Loading Article"</p>}>
-                        {move || user.get().map(move |x| {
-                            username.set(x.map(|y| y.username()).ok());
+                        {move || user.get().map(move |_| {
                             view! {
                                 <Article username/>
                             }
@@ -107,8 +113,7 @@ pub fn App() -> impl IntoView {
                     }/>
                     <Route path=path!("/profile/:user") view=move || view! {
                         <Transition fallback=|| view!{<p>"Loading Profile"</p>}>
-                        {move || user.get().map(move |x| {
-                            username.set(x.map(|y| y.username()).ok());
+                        {move || user.get().map(move |_| {
                             view! {
                                 <Profile username/>
                             }

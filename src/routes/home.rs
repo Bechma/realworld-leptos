@@ -189,15 +189,15 @@ fn TagList() -> impl IntoView {
             ts.map(move |tags| {
                 view! {
                     <For
-                        each=move || tags.clone().into_iter().enumerate()
-                        key=|(i, _)| *i
-                        children=move |(_, t): (usize, String)| {
-                            let t2 = t.clone();
-                            let same = t2 == tag_elected;
+                        each=move || tags.clone().into_iter()
+                        key=|tag| tag.clone()
+                        children=move |tag: String| {
+                            let tag_href = tag.clone();
+                            let same = tag == tag_elected;
                             view!{
                                 <a class="tag-pill tag-default" class:tag-primary=same
-                                    href=move || pagination.get().unwrap_or_default().set_tag(if same {""} else {&t2}).to_string()>
-                                    {t}
+                                    href=move || pagination.get().unwrap_or_default().set_tag(if same {""} else {&tag_href}).to_string()>
+                                    {tag}
                                 </a>
                             }
                         }
