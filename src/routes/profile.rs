@@ -28,14 +28,19 @@ pub struct UserProfileModel {
 
 #[server(UserProfileAction, "/api", "GetJson")]
 #[tracing::instrument]
-pub async fn user_profile(username: String) -> Result<UserProfileModel, ServerFnError> {
-    let user = crate::models::User::get(username.clone())
-        .await
-        .map_err(|x| {
+pub async fn user_profile(username: String) -> Result<Option<UserProfileModel>, ServerFnError> {
+    let user = match crate::models::User::get(username.clone()).await {
+        Ok(user) => user,
+        Err(sqlx::Error::RowNotFound) => return Ok(None),
+        Err(x) => {
             let err = format!("Error while getting user in user_profile: {x:?}");
             tracing::error!("{err}");
-            ServerFnError::new("Could not retrieve articles, try again later")
-        })?;
+            return Err(ServerFnError::ServerError(
+                "Could not retrieve profile, try again later".into(),
+            ));
+        }
+    };
+
     match crate::auth::get_username() {
         Some(lu) => sqlx::query!(
             "SELECT EXISTS(SELECT * FROM Follows WHERE follower=$2 and influencer=$1)",
@@ -49,14 +54,16 @@ pub async fn user_profile(username: String) -> Result<UserProfileModel, ServerFn
             tracing::error!("{err}");
             ServerFnError::ServerError("Could not retrieve articles, try again later".into())
         })
-        .map(|x| UserProfileModel {
-            user,
-            following: x.exists,
+        .map(|x| {
+            Some(UserProfileModel {
+                user,
+                following: x.exists,
+            })
         }),
-        None => Ok(UserProfileModel {
+        None => Ok(Some(UserProfileModel {
             user,
             following: None,
-        }),
+        })),
     }
 }
 
@@ -132,18 +139,24 @@ pub fn UserInfo(logged_user: crate::auth::UsernameSignal) -> impl IntoView {
                         >
                             {move || {
                                 resource.get().map(move |x| {
-                                    x.map(move |u| {
-                                        let image = u.user.image();
-                                        let username = u.user.username();
-                                        let bio = u.user.bio();
-                                        let (author, _) = signal(username.clone());
+                                    x.map(move |u| match u {
+                                        Some(u) => {
+                                            let image = u.user.image();
+                                            let username = u.user.username();
+                                            let bio = u.user.bio();
+                                            let (author, _) = signal(username.clone());
 
-                                        view!{
-                                            <img src=image class="user-img" />
-                                            <h4>{username}</h4>
-                                            <p>{bio.unwrap_or("No bio available".into())}</p>
-                                            <ButtonFollow logged_user author following=u.following.unwrap_or_default() />
+                                            view!{
+                                                <img src=image class="user-img" />
+                                                <h4>{username}</h4>
+                                                <p>{bio.unwrap_or("No bio available".into())}</p>
+                                                <ButtonFollow logged_user author following=u.following.unwrap_or_default() />
+                                            }.into_any()
                                         }
+                                        None => view! {
+                                            <p class="error-messages text-xs-center">"This profile does not exist."</p>
+                                        }
+                                        .into_any(),
                                     })
                                 })
                             }}

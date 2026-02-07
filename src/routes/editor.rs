@@ -174,7 +174,9 @@ pub fn Editor() -> impl IntoView {
         move || params.get(),
         |slug| async move {
             if let Some(s) = slug.get("slug") {
-                super::get_article(s.clone()).await
+                super::get_article(s.clone())
+                    .await
+                    .map(|article| article.unwrap_or_default())
             } else {
                 Ok(super::ArticleResult::default())
             }

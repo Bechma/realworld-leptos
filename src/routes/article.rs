@@ -12,17 +12,23 @@ pub struct ArticleResult {
 
 #[server(GetArticleAction, "/api", "GetJson")]
 #[tracing::instrument]
-pub async fn get_article(slug: String) -> Result<ArticleResult, ServerFnError> {
-    Ok(ArticleResult {
-        article: crate::models::Article::for_article(slug)
-            .await
-            .map_err(|x| {
-                let err = format!("Error while getting user_profile articles: {x:?}");
-                tracing::error!("{err}");
-                ServerFnError::new("Could not retrieve articles, try again later")
-            })?,
+pub async fn get_article(slug: String) -> Result<Option<ArticleResult>, ServerFnError> {
+    let article = match crate::models::Article::for_article(slug).await {
+        Ok(article) => article,
+        Err(sqlx::Error::RowNotFound) => return Ok(None),
+        Err(x) => {
+            let err = format!("Error while getting article: {x:?}");
+            tracing::error!("{err}");
+            return Err(ServerFnError::new(
+                "Could not retrieve article, try again later",
+            ));
+        }
+    };
+
+    Ok(Some(ArticleResult {
+        article,
         logged_user: crate::auth::current_user().await.ok(),
-    })
+    }))
 }
 
 #[tracing::instrument]
@@ -45,16 +51,32 @@ pub fn Article(username: crate::auth::UsernameSignal) -> impl IntoView {
             }>
                 {move || {
                     article.get().map(move |x| {
-                        x.map(move |article_result| {
-                            title.set(article_result.article.slug.clone());
-                            view! {
-                                <ArticlePage username result=article_result />
+                        x.map(move |article_result| match article_result {
+                            Some(article_result) => {
+                                title.set(article_result.article.slug.clone());
+                                view! {
+                                    <ArticlePage username result=article_result />
+                                }
+                                .into_any()
+                            }
+                            None => {
+                                title.set("Article not found".to_string());
+                                view! { <ArticleNotFound/> }.into_any()
                             }
                         })
                     })
                 }}
             </ErrorBoundary>
         </Suspense>
+    }
+}
+
+#[component]
+fn ArticleNotFound() -> impl IntoView {
+    view! {
+        <div class="container page">
+            <p class="error-messages text-xs-center">"Article not found."</p>
+        </div>
     }
 }
 
