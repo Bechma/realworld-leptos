@@ -1,16 +1,15 @@
-FROM rust:1.91-bookworm as builder
+FROM rust:1.92-trixie AS builder
 
 RUN cargo install cargo-leptos &&\
     rustup target add wasm32-unknown-unknown &&\
     mkdir -p /app
 
 WORKDIR /app
-ENV JWT_SECRET="replaceme when ran in prod"
 COPY . .
 
-RUN cargo leptos build -r -vv
+RUN cargo leptos build -r
 
-FROM debian:bookworm-slim as runner
+FROM debian:trixie-slim AS runner
 
 WORKDIR /app
 

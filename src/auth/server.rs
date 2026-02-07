@@ -65,7 +65,7 @@ async fn redirect(req: Request<axum::body::Body>, next: axum::middleware::Next) 
 pub(crate) fn decode_token(
     token: &str,
 ) -> Result<jsonwebtoken::TokenData<TokenClaims>, jsonwebtoken::errors::Error> {
-    let secret = env!("JWT_SECRET");
+    let secret = std::env::var("JWT_SECRET").unwrap_or("replaceme when ran in prod".to_owned());
     decode::<TokenClaims>(
         token,
         &DecodingKey::from_secret(secret.as_bytes()),
@@ -74,7 +74,7 @@ pub(crate) fn decode_token(
 }
 
 pub(crate) fn encode_token(token_claims: &TokenClaims) -> jsonwebtoken::errors::Result<String> {
-    let secret = env!("JWT_SECRET");
+    let secret = std::env::var("JWT_SECRET").unwrap_or("replaceme when ran in prod".to_owned());
     jsonwebtoken::encode(
         &jsonwebtoken::Header::default(),
         &token_claims,
