@@ -78,12 +78,7 @@ pub fn ArticleMeta(
     is_preview: bool,
 ) -> impl IntoView {
     let editor_ref = move || format!("/editor/{}", article.with(|x| x.slug.clone()));
-    let profile_ref = move || {
-        format!(
-            "/profile/{}",
-            article.with(|x| x.author.username.clone())
-        )
-    };
+    let profile_ref = move || format!("/profile/{}", article.with(|x| x.author.username.clone()));
 
     let delete_a = ServerAction::<DeleteArticleAction>::new();
 

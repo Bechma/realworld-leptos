@@ -1,6 +1,6 @@
 use leptos::prelude::*;
-use leptos_meta::{provide_meta_context, MetaTags, Stylesheet};
-use leptos_router::components::{Route, Router, Routes, A};
+use leptos_meta::{MetaTags, Stylesheet, provide_meta_context};
+use leptos_router::components::{A, Route, Router, Routes};
 use leptos_router::path;
 
 use crate::components::NavItems;

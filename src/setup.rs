@@ -1,7 +1,7 @@
 use leptos::prelude::*;
-use leptos_axum::{generate_route_list, LeptosRoutes};
+use leptos_axum::{LeptosRoutes, generate_route_list};
 
-use crate::app::{shell, App};
+use crate::app::{App, shell};
 
 /// # Panics
 ///

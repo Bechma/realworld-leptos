@@ -56,10 +56,7 @@ pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
 
     let your_feed_href = Memo::new(move |_| {
         if username.with(Option::is_some)
-            && !pagination.with(|x| {
-                x.as_ref()
-                    .is_ok_and(crate::models::Pagination::get_my_feed)
-            })
+            && !pagination.with(|x| x.as_ref().is_ok_and(crate::models::Pagination::get_my_feed))
         {
             pagination
                 .get()
@@ -77,9 +74,8 @@ pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
             "nav-link {}",
             if username.with(Option::is_none) {
                 "disabled"
-            } else if pagination.with(|x| x
-                .as_ref()
-                .is_ok_and(crate::models::Pagination::get_my_feed))
+            } else if pagination
+                .with(|x| x.as_ref().is_ok_and(crate::models::Pagination::get_my_feed))
             {
                 "active"
             } else {

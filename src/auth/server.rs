@@ -1,8 +1,8 @@
 use axum::{
-    http::{header, Request, StatusCode},
+    http::{Request, StatusCode, header},
     response::Response,
 };
-use jsonwebtoken::{decode, DecodingKey, Validation};
+use jsonwebtoken::{DecodingKey, Validation, decode};
 use serde::{Deserialize, Serialize};
 
 static AUTH_COOKIE: &str = "token";
@@ -96,7 +96,8 @@ pub(crate) fn get_username_from_headers(headers: &axum::http::HeaderMap) -> Opti
 
 #[tracing::instrument]
 pub fn get_username() -> Option<String> {
-    leptos::prelude::use_context::<axum::http::request::Parts>().map(|req| get_username_from_headers(&req.headers)).flatten()
+    leptos::prelude::use_context::<axum::http::request::Parts>()
+        .and_then(|req| get_username_from_headers(&req.headers))
 }
 
 #[tracing::instrument]

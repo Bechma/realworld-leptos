@@ -72,11 +72,7 @@ async fn update_article(
             .chars()
             .map(|c| {
                 let c = c.to_ascii_lowercase();
-                if c == ' ' {
-                    '-'
-                } else {
-                    c
-                }
+                if c == ' ' { '-' } else { c }
             })
             .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
             .collect::<String>();
