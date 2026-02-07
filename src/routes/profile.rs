@@ -79,15 +79,31 @@ pub fn Profile(username: crate::auth::UsernameSignal) -> impl IntoView {
     let user_article_href = move || format!("/profile/{}", route_user());
     let favourites_href = move || format!("{}?favourites=true", user_article_href());
 
+    let profile_info = Resource::new(
+        move || route_user(),
+        move |user| async move { user_profile(user).await },
+    );
+
+    let profile_title = move || {
+        profile_info.get().map_or_else(
+            || "Profile".to_string(),
+            |profile| match profile {
+                Ok(Some(profile)) => format!("{}'s profile", profile.user.username()),
+                Ok(None) => "Profile not found".to_string(),
+                Err(_) => "Profile".to_string(),
+            },
+        )
+    };
+
     let articles = Resource::new(
         move || (favourite(), route_user()),
         move |(fav, user)| async move { profile_articles(user, fav).await.unwrap_or_else(|_| vec![]) },
     );
 
     view! {
-        <Title text=move || format!("{}'s profile", route_user()) />
+        <Title text=profile_title />
         <div class="profile-page">
-            <UserInfo logged_user=username />
+            <UserInfo logged_user=username resource=profile_info />
 
             <div class="container">
                 <div class="row">
@@ -117,13 +133,10 @@ pub fn Profile(username: crate::auth::UsernameSignal) -> impl IntoView {
 }
 
 #[component]
-pub fn UserInfo(logged_user: crate::auth::UsernameSignal) -> impl IntoView {
-    let params = use_params_map();
-    let resource = Resource::new(
-        move || params.with(|x| x.get("user").clone().unwrap_or_default()),
-        move |user| async move { user_profile(user).await },
-    );
-
+pub fn UserInfo(
+    logged_user: crate::auth::UsernameSignal,
+    resource: Resource<Result<Option<UserProfileModel>, ServerFnError>>,
+) -> impl IntoView {
     view! {
         <div class="user-info">
             <div class="container">
