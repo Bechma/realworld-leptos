@@ -10,6 +10,7 @@ pub async fn init_app(
         .with_level(true)
         .with_max_level(tracing::Level::INFO)
         .init();
+    crate::auth::validate_config()?;
     // Init the pool into static
     crate::database::init_db().await?;
 

@@ -1,13 +1,20 @@
-FROM rust:1.92-trixie AS builder
+ARG RUST_VERSION=1.98.0
+ARG CARGO_LEPTOS_VERSION=0.3.7
 
-RUN cargo install cargo-leptos &&\
-    rustup target add wasm32-unknown-unknown &&\
-    mkdir -p /app
+FROM rust:${RUST_VERSION}-trixie AS builder
+
+ARG CARGO_LEPTOS_VERSION
+
+RUN curl --proto '=https' --tlsv1.2 -LsSf \
+    "https://github.com/leptos-rs/cargo-leptos/releases/download/v${CARGO_LEPTOS_VERSION}/cargo-leptos-installer.sh" \
+    | sh \
+    && cargo leptos --version \
+    && rustup target add wasm32-unknown-unknown
 
 WORKDIR /app
 COPY . .
 
-RUN cargo leptos build -r
+RUN cargo leptos build --release --precompress
 
 FROM debian:trixie-slim AS runner
 
@@ -23,5 +30,6 @@ ENV LEPTOS_SITE_PKG_DIR="pkg"
 
 EXPOSE 8080
 
-# Remember to set JWT_SECRET and DATABASE_URL environmental variables
+# Required at runtime: DATABASE_URL and JWT_SECRET.
+# Required for password-reset email: MAILER_EMAIL, MAILER_PASSWD, and MAILER_SMTP_SERVER.
 CMD ["/app/realworld-leptos"]

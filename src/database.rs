@@ -3,7 +3,14 @@ static DB: std::sync::OnceLock<sqlx::PgPool> = std::sync::OnceLock::new();
 type InitError = Box<dyn std::error::Error + Send + Sync>;
 
 async fn create_pool() -> Result<sqlx::PgPool, InitError> {
-    let database_url = std::env::var("DATABASE_URL")?;
+    let database_url = std::env::var("DATABASE_URL").map_err(|error| {
+        std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!(
+                "DATABASE_URL is required; set it to the PostgreSQL connection URL used by the application ({error})"
+            ),
+        )
+    })?;
     let pool = sqlx::postgres::PgPoolOptions::new()
         .max_connections(4)
         .connect(database_url.as_str())

@@ -4,6 +4,7 @@ use axum::{
 };
 use jsonwebtoken::{DecodingKey, Validation, decode};
 use serde::{Deserialize, Serialize};
+use std::fmt::{Debug, Display, Formatter};
 
 static AUTH_COOKIE: &str = "token";
 
@@ -16,6 +17,52 @@ pub struct TokenClaims {
                     // iss: String,         // Optional. Issuer
                     // nbf: usize,          // Optional. Not Before (as UTC timestamp)
                     // sub: String,         // Optional. Subject (whom token refers to)
+}
+
+pub enum TokenError {
+    MissingSecret(std::env::VarError),
+    JsonWebToken(jsonwebtoken::errors::Error),
+}
+
+impl Debug for TokenError {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(self, formatter)
+    }
+}
+
+impl Display for TokenError {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::MissingSecret(error) => write!(
+                formatter,
+                "JWT_SECRET is required; set it to a strong random secret used to sign authentication tokens ({error})"
+            ),
+            Self::JsonWebToken(error) => Display::fmt(error, formatter),
+        }
+    }
+}
+
+impl std::error::Error for TokenError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::MissingSecret(error) => Some(error),
+            Self::JsonWebToken(error) => Some(error),
+        }
+    }
+}
+
+impl From<jsonwebtoken::errors::Error> for TokenError {
+    fn from(error: jsonwebtoken::errors::Error) -> Self {
+        Self::JsonWebToken(error)
+    }
+}
+
+fn jwt_secret() -> Result<String, TokenError> {
+    std::env::var("JWT_SECRET").map_err(TokenError::MissingSecret)
+}
+
+pub fn validate_config() -> Result<(), TokenError> {
+    jwt_secret().map(|_| ())
 }
 
 pub static REMOVE_COOKIE: &str = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
@@ -60,26 +107,22 @@ async fn redirect(req: Request<axum::body::Body>, next: axum::middleware::Next) 
     }
 }
 
-pub fn decode_token(
-    token: &str,
-) -> Result<jsonwebtoken::TokenData<TokenClaims>, jsonwebtoken::errors::Error> {
-    let secret =
-        std::env::var("JWT_SECRET").unwrap_or_else(|_| "replaceme when ran in prod".to_owned());
-    decode::<TokenClaims>(
+pub fn decode_token(token: &str) -> Result<jsonwebtoken::TokenData<TokenClaims>, TokenError> {
+    let secret = jwt_secret()?;
+    Ok(decode::<TokenClaims>(
         token,
         &DecodingKey::from_secret(secret.as_bytes()),
         &Validation::default(),
-    )
+    )?)
 }
 
-pub fn encode_token(token_claims: &TokenClaims) -> jsonwebtoken::errors::Result<String> {
-    let secret =
-        std::env::var("JWT_SECRET").unwrap_or_else(|_| "replaceme when ran in prod".to_owned());
-    jsonwebtoken::encode(
+pub fn encode_token(token_claims: &TokenClaims) -> Result<String, TokenError> {
+    let secret = jwt_secret()?;
+    Ok(jsonwebtoken::encode(
         &jsonwebtoken::Header::default(),
-        &token_claims,
+        token_claims,
         &jsonwebtoken::EncodingKey::from_secret(secret.as_bytes()),
-    )
+    )?)
 }
 
 #[tracing::instrument]

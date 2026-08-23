@@ -11,6 +11,33 @@ struct EmailCredentials {
     smtp_server: String,
 }
 
+#[cfg(feature = "ssr")]
+impl EmailCredentials {
+    fn from_env() -> Result<Self, ServerFnError> {
+        Ok(Self {
+            email: required_env(
+                "MAILER_EMAIL",
+                "the sender email address for password-reset messages",
+            )?,
+            passwd: required_env(
+                "MAILER_PASSWD",
+                "the SMTP password for the password-reset mailer",
+            )?,
+            smtp_server: required_env(
+                "MAILER_SMTP_SERVER",
+                "the SMTP hostname used to send password-reset messages",
+            )?,
+        })
+    }
+}
+
+#[cfg(feature = "ssr")]
+fn required_env(name: &str, purpose: &str) -> Result<String, ServerFnError> {
+    env::var(name).map_err(|error| {
+        ServerFnError::new(format!("{name} is required; set it to {purpose} ({error})"))
+    })
+}
+
 #[tracing::instrument]
 #[server(ResetPasswordAction1, "/api")]
 pub async fn reset_password_1(email: String) -> Result<String, ServerFnError> {
@@ -18,11 +45,7 @@ pub async fn reset_password_1(email: String) -> Result<String, ServerFnError> {
         let err = format!("Bad email : {x:?}");
         tracing::error!("{err}");
     } else {
-        let creds = EmailCredentials {
-            email: env::var("MAILER_EMAIL")?,
-            passwd: env::var("MAILER_PASSWD")?,
-            smtp_server: env::var("MAILER_SMTP_SERVER")?,
-        };
+        let creds = EmailCredentials::from_env()?;
         let request = use_context::<axum::http::request::Parts>()
             .ok_or_else(|| ServerFnError::new("request context is unavailable"))?;
         let host = request
