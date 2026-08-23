@@ -1,6 +1,6 @@
 use axum::{
     http::{Request, StatusCode, header},
-    response::Response,
+    response::{IntoResponse, Response},
 };
 use jsonwebtoken::{DecodingKey, Validation, decode};
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,7 @@ pub struct TokenClaims {
                     // sub: String,         // Optional. Subject (whom token refers to)
 }
 
-pub(crate) static REMOVE_COOKIE: &str = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+pub static REMOVE_COOKIE: &str = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
 pub async fn auth_middleware(
     req: Request<axum::body::Body>,
@@ -34,11 +34,7 @@ pub async fn auth_middleware(
             let path = req.uri().path();
             if path.starts_with("/login") || path.starts_with("/signup") {
                 // If the user is authenticated, we don't want to show the login or signup pages
-                return Response::builder()
-                    .status(StatusCode::FOUND)
-                    .header(header::LOCATION, "/")
-                    .body(axum::body::Body::empty())
-                    .unwrap();
+                return (StatusCode::FOUND, [(header::LOCATION, "/")]).into_response();
             }
             next.run(req).await
         }
@@ -51,21 +47,24 @@ async fn redirect(req: Request<axum::body::Body>, next: axum::middleware::Next) 
 
     if path.starts_with("/settings") || path.starts_with("/editor") {
         // authenticated routes
-        Response::builder()
-            .status(StatusCode::FOUND)
-            .header(header::LOCATION, "/login")
-            .header(header::SET_COOKIE, REMOVE_COOKIE)
-            .body(axum::body::Body::empty())
-            .unwrap()
+        (
+            StatusCode::FOUND,
+            [
+                (header::LOCATION, "/login"),
+                (header::SET_COOKIE, REMOVE_COOKIE),
+            ],
+        )
+            .into_response()
     } else {
         next.run(req).await
     }
 }
 
-pub(crate) fn decode_token(
+pub fn decode_token(
     token: &str,
 ) -> Result<jsonwebtoken::TokenData<TokenClaims>, jsonwebtoken::errors::Error> {
-    let secret = std::env::var("JWT_SECRET").unwrap_or("replaceme when ran in prod".to_owned());
+    let secret =
+        std::env::var("JWT_SECRET").unwrap_or_else(|_| "replaceme when ran in prod".to_owned());
     decode::<TokenClaims>(
         token,
         &DecodingKey::from_secret(secret.as_bytes()),
@@ -73,8 +72,9 @@ pub(crate) fn decode_token(
     )
 }
 
-pub(crate) fn encode_token(token_claims: &TokenClaims) -> jsonwebtoken::errors::Result<String> {
-    let secret = std::env::var("JWT_SECRET").unwrap_or("replaceme when ran in prod".to_owned());
+pub fn encode_token(token_claims: &TokenClaims) -> jsonwebtoken::errors::Result<String> {
+    let secret =
+        std::env::var("JWT_SECRET").unwrap_or_else(|_| "replaceme when ran in prod".to_owned());
     jsonwebtoken::encode(
         &jsonwebtoken::Header::default(),
         &token_claims,
@@ -83,7 +83,7 @@ pub(crate) fn encode_token(token_claims: &TokenClaims) -> jsonwebtoken::errors::
 }
 
 #[tracing::instrument]
-pub(crate) fn get_username_from_headers(headers: &axum::http::HeaderMap) -> Option<String> {
+pub fn get_username_from_headers(headers: &axum::http::HeaderMap) -> Option<String> {
     headers.get(header::COOKIE).and_then(|x| {
         x.to_str()
             .ok()?
@@ -101,20 +101,15 @@ pub fn get_username() -> Option<String> {
 }
 
 #[tracing::instrument]
-pub async fn set_username(username: String) -> bool {
-    if let Some(res) = leptos::prelude::use_context::<leptos_axum::ResponseOptions>() {
-        let token = encode_token(&TokenClaims {
-            sub: username,
-            exp: (sqlx::types::chrono::Utc::now().timestamp() as usize) + 3_600_000,
-        })
-        .unwrap();
-        res.insert_header(
-            header::SET_COOKIE,
-            header::HeaderValue::from_str(&format!("{AUTH_COOKIE}={token}; path=/; HttpOnly"))
-                .expect("header value couldn't be set"),
-        );
-        true
-    } else {
-        false
-    }
+pub fn set_username(username: String) -> Result<(), leptos::prelude::ServerFnError> {
+    let res = leptos::prelude::use_context::<leptos_axum::ResponseOptions>()
+        .ok_or_else(|| leptos::prelude::ServerFnError::new("response context is unavailable"))?;
+    let exp = usize::try_from(sqlx::types::chrono::Utc::now().timestamp())
+        .map_err(leptos::prelude::ServerFnError::new)?
+        .saturating_add(3_600_000);
+    let token = encode_token(&TokenClaims { sub: username, exp })?;
+    let cookie =
+        header::HeaderValue::from_str(&format!("{AUTH_COOKIE}={token}; path=/; HttpOnly"))?;
+    res.insert_header(header::SET_COOKIE, cookie);
+    Ok(())
 }

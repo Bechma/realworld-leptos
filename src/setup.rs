@@ -3,21 +3,18 @@ use leptos_axum::{LeptosRoutes, generate_route_list};
 
 use crate::app::{App, shell};
 
-/// # Panics
-///
-/// Will panic if anything is badly setup from database, or web server
-pub async fn init_app(configuration_path: Option<&str>) {
+pub async fn init_app(
+    configuration_path: Option<&str>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     tracing_subscriber::fmt()
         .with_level(true)
         .with_max_level(tracing::Level::INFO)
         .init();
     // Init the pool into static
-    crate::database::init_db()
-        .await
-        .expect("problem during initialization of the database");
+    crate::database::init_db().await?;
 
     // Get leptos configuration
-    let conf = get_configuration(configuration_path).unwrap();
+    let conf = get_configuration(configuration_path)?;
     let addr = conf.leptos_options.site_addr;
     // Generate the list of routes in your Leptos App
     let routes = generate_route_list(|| view! { <App/> });
@@ -47,6 +44,7 @@ pub async fn init_app(configuration_path: Option<&str>) {
         .layer(axum::middleware::from_fn(crate::auth::auth_middleware))
         .with_state(leptos_options);
 
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(addr).await?;
+    axum::serve(listener, app).await?;
+    Ok(())
 }

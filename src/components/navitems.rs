@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use leptos_router::components::A;
 
 #[component]
-pub(crate) fn NavItems(logout: LogoutSignal, username: UsernameSignal) -> impl IntoView {
+pub fn NavItems(logout: LogoutSignal, username: UsernameSignal) -> impl IntoView {
     let profile_label = move || username.get().unwrap_or_default();
     let profile_href = move || format!("/profile/{}", profile_label());
 

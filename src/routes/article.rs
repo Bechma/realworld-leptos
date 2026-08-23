@@ -36,7 +36,7 @@ pub async fn get_article(slug: String) -> Result<Option<ArticleResult>, ServerFn
 pub fn Article(username: crate::auth::UsernameSignal) -> impl IntoView {
     let params = use_params_map();
     let article = Resource::new(
-        move || params.get().get("slug").clone().unwrap_or_default(),
+        move || params.get().get("slug").unwrap_or_default(),
         |slug| async { get_article(slug).await },
     );
 
@@ -51,18 +51,15 @@ pub fn Article(username: crate::auth::UsernameSignal) -> impl IntoView {
             }>
                 {move || {
                     article.get().map(move |x| {
-                        x.map(move |article_result| match article_result {
-                            Some(article_result) => {
+                        x.map(move |article_result| if let Some(article_result) = article_result {
                                 title.set(article_result.article.slug.clone());
                                 view! {
                                     <ArticlePage username result=article_result />
                                 }
                                 .into_any()
-                            }
-                            None => {
+                            } else {
                                 title.set("Article not found".to_string());
                                 view! { <ArticleNotFound/> }.into_any()
-                            }
                         })
                     })
                 }}
@@ -237,7 +234,7 @@ fn Comment(
     let delete_result = delete_c.value();
 
     Effect::new(move |_| {
-        if let Some(Ok(())) = delete_result.get() {
+        if delete_result.get() == Some(Ok(())) {
             tracing::info!("comment deleted!");
             comments.refetch();
         }

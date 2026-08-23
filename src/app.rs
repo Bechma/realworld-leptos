@@ -6,6 +6,7 @@ use leptos_router::path;
 use crate::components::NavItems;
 use crate::routes::{Article, Editor, HomePage, Login, Profile, ResetPassword, Settings, Signup};
 
+#[must_use]
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
         <!DOCTYPE html>

@@ -72,7 +72,7 @@ pub async fn user_profile(username: String) -> Result<Option<UserProfileModel>, 
 #[component]
 pub fn Profile(username: crate::auth::UsernameSignal) -> impl IntoView {
     let params = use_params_map();
-    let route_user = move || params.with(|x| x.get("user").clone().unwrap_or_default());
+    let route_user = move || params.with(|x| x.get("user").unwrap_or_default());
     let query = use_query_map();
     let favourite = move || query.with(|x| x.get("favourites").map(|_| true));
 
@@ -162,7 +162,7 @@ pub fn UserInfo(
                                             view!{
                                                 <img src=image class="user-img" />
                                                 <h4>{username}</h4>
-                                                <p>{bio.unwrap_or("No bio available".into())}</p>
+                                                <p>{bio.unwrap_or_else(|| "No bio available".into())}</p>
                                                 <ButtonFollow logged_user author following=u.following.unwrap_or_default() />
                                             }.into_any()
                                         }

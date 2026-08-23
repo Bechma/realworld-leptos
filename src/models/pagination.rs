@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 use leptos_router::params::Params;
 
-#[derive(Debug, Params, PartialEq, Clone)]
+#[derive(Debug, Params, PartialEq, Eq, Clone)]
 pub struct Pagination {
     tag: Option<String>,
     my_feed: Option<bool>,
@@ -34,19 +34,19 @@ impl Pagination {
     }
 
     #[inline]
-    pub fn set_amount(mut self, amount: u32) -> Self {
+    pub const fn set_amount(mut self, amount: u32) -> Self {
         self.amount = Some(amount);
         self
     }
 
     #[inline]
-    pub fn set_my_feed(mut self, feed: bool) -> Self {
+    pub const fn set_my_feed(mut self, feed: bool) -> Self {
         self.my_feed = Some(feed);
         self
     }
 
     #[inline]
-    pub fn reset_page(mut self) -> Self {
+    pub const fn reset_page(mut self) -> Self {
         self.page = Some(0);
         self
     }

@@ -11,9 +11,6 @@ struct EmailCredentials {
     smtp_server: String,
 }
 
-#[cfg(feature = "ssr")]
-static EMAIL_CREDS: std::sync::OnceLock<EmailCredentials> = std::sync::OnceLock::new();
-
 #[tracing::instrument]
 #[server(ResetPasswordAction1, "/api")]
 pub async fn reset_password_1(email: String) -> Result<String, ServerFnError> {
@@ -21,22 +18,33 @@ pub async fn reset_password_1(email: String) -> Result<String, ServerFnError> {
         let err = format!("Bad email : {x:?}");
         tracing::error!("{err}");
     } else {
-        let creds = EMAIL_CREDS.get_or_init(|| EmailCredentials {
-            email: env::var("MAILER_EMAIL").unwrap(),
-            passwd: env::var("MAILER_PASSWD").unwrap(),
-            smtp_server: env::var("MAILER_SMTP_SERVER").unwrap(),
-        });
-        let host = leptos_axum::extract::<axum_extra::extract::Host>().await?.0;
+        let creds = EmailCredentials {
+            email: env::var("MAILER_EMAIL")?,
+            passwd: env::var("MAILER_PASSWD")?,
+            smtp_server: env::var("MAILER_SMTP_SERVER")?,
+        };
+        let request = use_context::<axum::http::request::Parts>()
+            .ok_or_else(|| ServerFnError::new("request context is unavailable"))?;
+        let host = request
+            .headers
+            .get("x-forwarded-host")
+            .or_else(|| request.headers.get(axum::http::header::HOST))
+            .and_then(|value| value.to_str().ok())
+            .map(ToOwned::to_owned)
+            .or_else(|| request.uri.authority().map(ToString::to_string))
+            .ok_or_else(|| ServerFnError::new("request host is unavailable"))?;
         let schema = if cfg!(debug_assertions) {
             "http"
         } else {
             "https"
         };
+        let exp = usize::try_from(sqlx::types::chrono::Utc::now().timestamp())
+            .map_err(ServerFnError::new)?
+            .saturating_add(3_600);
         let token = crate::auth::encode_token(&crate::auth::TokenClaims {
             sub: email.clone(),
-            exp: (sqlx::types::chrono::Utc::now().timestamp() as usize) + 3_600,
-        })
-        .unwrap();
+            exp,
+        })?;
         let uri = format!("{schema}://{host}/reset_password?token={token}");
         // Build a simple multipart message
         let message = mail_send::mail_builder::MessageBuilder::new()
@@ -50,14 +58,13 @@ pub async fn reset_password_1(email: String) -> Result<String, ServerFnError> {
         // Connect to the SMTP submissions port, upgrade to TLS and
         // authenticate using the provided credentials.
         mail_send::SmtpClientBuilder::new(creds.smtp_server.as_str(), 587)
+            .map_err(ServerFnError::new)?
             .implicit_tls(false)
             .credentials((creds.email.as_str(), creds.passwd.as_str()))
             .connect()
-            .await
-            .unwrap()
+            .await?
             .send(message)
-            .await
-            .unwrap();
+            .await?;
     }
     return Ok(String::from("Check your email"));
 }

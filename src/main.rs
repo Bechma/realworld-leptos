@@ -2,8 +2,8 @@
 
 #[cfg(feature = "ssr")]
 #[tokio::main]
-async fn main() {
-    realworld_leptos::setup::init_app(None).await;
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    realworld_leptos::setup::init_app(None).await
 }
 
 #[cfg(not(feature = "ssr"))]

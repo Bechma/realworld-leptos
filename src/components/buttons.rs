@@ -55,17 +55,13 @@ pub fn ButtonFollow(
     let follow = ServerAction::<FollowAction>::new();
     let result_call = follow.value();
     let follow_cond = move || {
-        if let Some(x) = result_call.get() {
-            match x {
-                Ok(x) => x,
-                Err(err) => {
-                    tracing::error!("problem while following {err:?}");
-                    following
-                }
+        result_call.get().map_or(following, |x| match x {
+            Ok(x) => x,
+            Err(err) => {
+                tracing::error!("problem while following {err:?}");
+                following
             }
-        } else {
-            following
-        }
+        })
     };
 
     view! {

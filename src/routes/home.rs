@@ -35,6 +35,7 @@ async fn get_tags() -> Result<Vec<String>, ServerFnError> {
 }
 
 /// Renders the home page of your application.
+#[allow(clippy::too_many_lines)]
 #[component]
 pub fn HomePage(username: crate::auth::UsernameSignal) -> impl IntoView {
     let pagination = use_query::<crate::models::Pagination>();

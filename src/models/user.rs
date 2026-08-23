@@ -59,6 +59,8 @@ impl User {
 
     #[cfg(feature = "ssr")]
     fn validate_email(email: &str) -> bool {
+        #[allow(clippy::unwrap_used)]
+        // We can safely unwrap here because the regex is hardcoded and valid
         EMAIL_REGEX
             .get_or_init(|| regex::Regex::new(r"^[\w\-\.]+@([\w-]+\.)+\w{2,4}$").unwrap())
             .is_match(email)

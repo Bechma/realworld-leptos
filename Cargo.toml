@@ -7,70 +7,86 @@ edition = "2024"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-axum = { version = "0.8.7", optional = true }
-jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"], optional = true }
-tokio = { version = "1.47.1", features = ["rt-multi-thread"], optional = true }
-tower = { version = "0.5.2", optional = true }
-tower-http = { version = "0.6.7", features = ["fs", "trace"], optional = true }
-sqlx = { version = "0.8.6", features = [
-    "runtime-tokio-rustls",
-    "postgres",
-    "chrono",
+axum = { version = "0.8.9", optional = true }
+jsonwebtoken = { version = "11.0.0", features = [
+  "rust_crypto",
 ], optional = true }
-mail-send = { version = "0.5.2", optional = true }
-regex = { version = "1.12.2", optional = true }
+tokio = { version = "1.53.1", features = ["rt-multi-thread"], optional = true }
+tower = { version = "0.5.3", optional = true }
+tower-http = { version = "0.7.0", features = ["fs", "trace"], optional = true }
+sqlx = { version = "0.9.0", features = [
+  "runtime-tokio",
+  "tls-rustls-aws-lc-rs",
+  "postgres",
+  "chrono",
+], optional = true }
+mail-send = { version = "0.6.2", optional = true }
+regex = { version = "1.13.1", optional = true }
 
-serde = { version = "1.0.228", features = ["derive"] }
+serde = { version = "1.0.229", features = ["derive"] }
 
 console_error_panic_hook = { version = "0.1.7", optional = true }
 
-leptos = "0.8.15"
-leptos_meta = "0.8.5"
-leptos_axum = { version = "0.8.7", optional = true }
-leptos_router = "0.8.11"
+leptos = "0.8.20"
+leptos_meta = "0.8.6"
+leptos_axum = { version = "0.8.10", optional = true }
+leptos_router = "0.8.15"
 
-tracing = "0.1.43"
-tracing-subscriber = { version = "0.3.22", features = ["fmt"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["fmt"] }
 tracing-wasm = { version = "0.2.1", optional = true }
 
-wasm-bindgen = "0.2.106"
-axum-extra = "0.12.2"
+wasm-bindgen = "0.2.127"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+missing_errors_doc = "allow"
+unwrap_used = "deny"
+expect_used = "deny"
+
+[patch.crates-io]
+# Remove this override once proc-macro-error2 publishes a fix for Rust E0365.
+proc-macro-error2 = { path = "vendor/proc-macro-error2" }
 
 [features]
 default = ["ssr", "hydrate"]
 hydrate = [
-    "leptos/hydrate",
-    # "leptos_meta/hydrate",
-    # "leptos_router/hydrate",
-    "dep:tracing-wasm",
-    "dep:console_error_panic_hook",
+  "leptos/hydrate",
+  # "leptos_meta/hydrate",
+  # "leptos_router/hydrate",
+  "dep:tracing-wasm",
+  "dep:console_error_panic_hook",
 ]
 ssr = [
-    "leptos/ssr",
-    "leptos_meta/ssr",
-    "leptos_router/ssr",
-    "dep:leptos_axum",
-    "dep:axum",
-    "dep:jsonwebtoken",
-    "dep:tokio",
-    "dep:tower",
-    "dep:tower-http",
-    "dep:sqlx",
-    "dep:regex",
-    "dep:mail-send"
+  "leptos/ssr",
+  "leptos_meta/ssr",
+  "leptos_router/ssr",
+  "dep:leptos_axum",
+  "dep:axum",
+  "dep:jsonwebtoken",
+  "dep:tokio",
+  "dep:tower",
+  "dep:tower-http",
+  "dep:sqlx",
+  "dep:regex",
+  "dep:mail-send",
 ]
 
 [package.metadata.cargo-all-features]
 denylist = [
-    "axum",
-    "tower",
-    "tower-http",
-    "tokio",
-    "sqlx",
-    "leptos_axum",
-    "jsonwebtoken",
-    "regex",
-    "mail-send",
+  "axum",
+  "tower",
+  "tower-http",
+  "tokio",
+  "sqlx",
+  "leptos_axum",
+  "jsonwebtoken",
+  "regex",
+  "mail-send",
 ]
 skip_feature_sets = [["csr", "ssr"], ["csr", "hydrate"], ["ssr", "hydrate"]]
 

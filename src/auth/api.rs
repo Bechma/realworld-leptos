@@ -29,7 +29,7 @@ pub async fn signup_action(
     match validate_signup(username.clone(), email, password) {
         Ok(user) => match user.insert().await {
             Ok(_) => {
-                crate::auth::set_username(username).await;
+                crate::auth::set_username(username)?;
                 leptos_axum::redirect("/");
                 Ok(SignupResponse::Success)
             }
@@ -73,11 +73,12 @@ pub async fn login_action(
     .unwrap_or_default()
         == username
     {
-        crate::auth::set_username(username).await;
+        crate::auth::set_username(username)?;
         leptos_axum::redirect("/");
         Ok(LoginMessages::Successful)
     } else {
-        let response_options = use_context::<leptos_axum::ResponseOptions>().unwrap();
+        let response_options = use_context::<leptos_axum::ResponseOptions>()
+            .ok_or_else(|| ServerFnError::new("response context is unavailable"))?;
         response_options.set_status(axum::http::StatusCode::FORBIDDEN);
         Ok(LoginMessages::Unsuccessful)
     }
@@ -86,11 +87,11 @@ pub async fn login_action(
 #[server(LogoutAction, "/api")]
 #[tracing::instrument]
 pub async fn logout_action() -> Result<(), ServerFnError> {
-    let response_options = use_context::<leptos_axum::ResponseOptions>().unwrap();
+    let response_options = use_context::<leptos_axum::ResponseOptions>()
+        .ok_or_else(|| ServerFnError::new("response context is unavailable"))?;
     response_options.insert_header(
         axum::http::header::SET_COOKIE,
-        axum::http::HeaderValue::from_str(crate::auth::REMOVE_COOKIE)
-            .expect("header value couldn't be set"),
+        axum::http::HeaderValue::from_static(crate::auth::REMOVE_COOKIE),
     );
     leptos_axum::redirect("/login");
     Ok(())
